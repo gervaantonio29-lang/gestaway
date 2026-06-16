@@ -1,16 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;800&display=swap" rel="stylesheet">
-<style>
-body { margin: 0; padding: 16px; background: #f0f0f0; }
-.card { border-radius: 10px; overflow: hidden; }
-</style>
-</head>
-<body>
-
-<div class="card">
-<svg width="100%" viewBox="0 0 580 220" xmlns="http://www.w3.org/2000/svg">
+<svg width="580" height="220" viewBox="0 0 580 220" xmlns="http://www.w3.org/2000/svg">
 <rect x="0" y="0" width="580" height="220" fill="#c8102e"/>
 <circle cx="105" cy="105" r="88" fill="none" stroke="white" stroke-width="20" stroke-dasharray="430 123" stroke-dashoffset="196" stroke-linecap="round" transform="scale(-1,1) translate(-210,0)"/>
 <polyline points="73,85 105,51 137,85" fill="none" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
@@ -21,7 +9,3 @@ body { margin: 0; padding: 16px; background: #f0f0f0; }
 <text x="150" y="122" font-family="Poppins, sans-serif" font-size="72" font-weight="800" textLength="410" lengthAdjust="spacing" fill="white">ESTΛWAY</text>
 <text x="385" y="178" text-anchor="middle" font-family="Poppins, sans-serif" font-size="28" font-weight="400" letter-spacing="3" fill="white">SOFTWARE PER B&amp;B</text>
 </svg>
-</div>
-
-</body>
-</html>
