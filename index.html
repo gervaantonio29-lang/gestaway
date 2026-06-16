@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestaway — Software per B&B</title>
+<meta name="description" content="Gestaway è il software gestionale per B&B e affitti brevi. Prenotazioni, check-in digitale, questura automatica. Da €29/mese.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#c8102e;
+  --navy:#1a2e4a;
+  --white:#ffffff;
+  --light:#f8f8f8;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Poppins',sans-serif;color:var(--navy);background:var(--white)}
+a{text-decoration:none;color:inherit}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-logo img{height:44px;width:auto;border-radius:6px}
+.nav-links{display:flex;gap:2rem}
+.nav-links a{color:rgba(255,255,255,0.75);font-size:14px;font-weight:600;transition:color 0.2s}
+.nav-links a:hover{color:white}
+.nav-cta{background:var(--red);color:white;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:700;transition:opacity 0.2s}
+.nav-cta:hover{opacity:0.85}
+
+/* HERO */
+.hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 5rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(200,16,46,0.15) 0%,transparent 70%)}
+.hero-content{position:relative;z-index:1;max-width:800px}
+.hero-tag{display:inline-block;background:rgba(200,16,46,0.2);color:var(--red);border:1px solid rgba(200,16,46,0.3);padding:6px 18px;border-radius:100px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:2rem}
+.hero h1{font-size:clamp(2.5rem,6vw,5rem);font-weight:800;color:white;line-height:1.05;margin-bottom:1.5rem}
+.hero h1 span{color:var(--red)}
+.hero p{color:rgba(255,255,255,0.65);font-size:18px;line-height:1.75;margin-bottom:2.5rem;max-width:560px;margin-left:auto;margin-right:auto}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-red{background:var(--red);color:white;padding:15px 36px;border-radius:8px;font-size:15px;font-weight:700;transition:all 0.2s;display:inline-block}
+.btn-red:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-outline{border:2px solid rgba(255,255,255,0.3);color:white;padding:15px 36px;border-radius:8px;font-size:15px;font-weight:600;transition:all 0.2s;display:inline-block}
+.btn-outline:hover{border-color:white}
+
+/* TRUST */
+.trust{background:white;border-bottom:1px solid var(--border);padding:1.5rem 2rem}
+.trust-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
+.trust-label{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
+.trust-items{display:flex;gap:2.5rem;flex-wrap:wrap;align-items:center}
+.trust-item{color:var(--navy);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+
+/* FEATURES */
+.features{background:var(--light);padding:6rem 2rem}
+.container{max-width:1080px;margin:0 auto}
+.section-tag{color:var(--red);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:0.75rem}
+.section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;line-height:1.2;margin-bottom:1rem;color:var(--navy)}
+.section-desc{color:var(--muted);font-size:16px;line-height:1.8;max-width:560px}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:3rem}
+.feat-card{background:white;border:1px solid var(--border);border-radius:12px;padding:2rem;transition:all 0.2s}
+.feat-card:hover{box-shadow:0 8px 32px rgba(200,16,46,0.1);transform:translateY(-2px)}
+.feat-icon{font-size:2rem;margin-bottom:1rem}
+.feat-title{font-weight:700;font-size:15px;margin-bottom:0.5rem;color:var(--navy)}
+.feat-desc{color:var(--muted);font-size:14px;line-height:1.7}
+
+/* PRICING */
+.pricing{background:white;padding:6rem 2rem}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:3rem}
+.price-card{border:2px solid var(--border);border-radius:12px;padding:2.5rem 2rem;position:relative;transition:all 0.2s}
+.price-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(26,46,74,0.1)}
+.price-card.featured{border-color:var(--red)}
+.price-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--red);color:white;font-size:11px;font-weight:700;letter-spacing:1px;padding:4px 16px;border-radius:100px;text-transform:uppercase;white-space:nowrap}
+.price-name{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem}
+.price-amount{font-size:3rem;font-weight:800;color:var(--navy);line-height:1}
+.price-amount span{font-size:16px;font-weight:400;color:var(--muted)}
+.price-desc{color:var(--muted);font-size:13.5px;margin:1rem 0 1.5rem;line-height:1.6}
+.price-features{list-style:none;margin-bottom:2rem}
+.price-features li{font-size:14px;padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;color:var(--navy)}
+.price-features li:last-child{border-bottom:none}
+.price-features li::before{content:'✓';color:var(--red);font-weight:800;font-size:13px}
+.price-no::before{content:'–' !important;color:var(--border) !important}
+.price-no{color:var(--muted) !important}
+.btn-plan{display:block;text-align:center;padding:13px;border-radius:7px;font-size:14px;font-weight:700;transition:all 0.2s}
+.btn-plan-red{background:var(--red);color:white}
+.btn-plan-red:hover{opacity:0.9}
+.btn-plan-outline{border:2px solid var(--border);color:var(--navy)}
+.btn-plan-outline:hover{border-color:var(--red);color:var(--red)}
+.price-note{text-align:center;margin-top:2rem;color:var(--muted);font-size:13px}
+
+/* INTEGRATIONS */
+.integrations{background:var(--light);padding:6rem 2rem}
+.int-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:2.5rem}
+.int-card{background:white;border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:all 0.2s}
+.int-card:hover{border-color:var(--red);box-shadow:0 4px 16px rgba(200,16,46,0.08)}
+.int-icon{font-size:2rem;margin-bottom:0.75rem}
+.int-name{font-weight:700;font-size:14px;color:var(--navy);margin-bottom:4px}
+.int-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* CTA */
+.cta{background:var(--red);padding:6rem 2rem;text-align:center}
+.cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:800;color:white;margin-bottom:1rem}
+.cta p{color:rgba(255,255,255,0.8);font-size:16px;line-height:1.7;margin-bottom:2.5rem}
+.btn-white{background:white;color:var(--red);padding:15px 36px;border-radius:8px;font-size:15px;font-weight:700;display:inline-block;transition:all 0.2s}
+.btn-white:hover{opacity:0.9;transform:translateY(-1px)}
+
+/* FOOTER */
+footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
+.footer-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.footer-logo img{height:36px;width:auto;border-radius:4px}
+.footer-links{display:flex;gap:2rem}
+.footer-links a{color:rgba(255,255,255,0.4);font-size:13px;transition:color 0.2s}
+.footer-links a:hover{color:white}
+
+@media(max-width:900px){
+  .features-grid,.pricing-grid,.int-grid{grid-template-columns:1fr 1fr}
+  .pricing-grid{max-width:480px;margin-left:auto;margin-right:auto;margin-top:3rem}
+}
+@media(max-width:600px){
+  .nav-links,.nav-cta{display:none}
+  .features-grid,.int-grid{grid-template-columns:1fr}
+  .trust-items{gap:1.5rem}
+  .footer-inner{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <a href="/"><img src="gestaway-logo.svg" alt="Gestaway"></a>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Funzioni</a>
+    <a href="#pricing">Prezzi</a>
+    <a href="#integrations">Integrazioni</a>
+    <a href="#contact">Contatti</a>
+  </div>
+  <a href="#contact" class="nav-cta">Contattaci</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-tag">Software per B&B · Affitti brevi</div>
+    <h1>Gestisci il tuo B&B<br><span>senza pensieri</span></h1>
+    <p>Prenotazioni, check-in digitale, questura automatica, Ross1000 Lombardia — tutto in un'unica piattaforma. Senza costi di setup.</p>
+    <div class="hero-btns">
+      <a href="#contact" class="btn-red">Contattaci ora</a>
+      <a href="#features" class="btn-outline">Scopri le funzioni</a>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="trust-inner">
+    <span class="trust-label">Integrato con</span>
+    <div class="trust-items">
+      <div class="trust-item">🏠 Airbnb</div>
+      <div class="trust-item">📋 Booking.com</div>
+      <div class="trust-item">🚔 Alloggiati Web</div>
+      <div class="trust-item">📊 Ross1000 Lombardia</div>
+      <div class="trust-item">🔑 SwitchBot</div>
+      <div class="trust-item">📧 Gmail</div>
+    </div>
+  </div>
+</div>
+
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-tag">Funzionalità</div>
+    <h2 class="section-title">Tutto quello che serve<br>a un host moderno</h2>
+    <p class="section-desc">Sviluppato per proprietari di B&B e appartamenti in Italia. Niente di superfluo, tutto quello che usi ogni giorno.</p>
+    <div class="features-grid">
+      <div class="feat-card"><div class="feat-icon">📅</div><div class="feat-title">Calendario prenotazioni</div><div class="feat-desc">Tutte le prenotazioni Airbnb, Booking e manuali in un unico calendario. Niente più doppie prenotazioni.</div></div>
+      <div class="feat-card"><div class="feat-icon">✅</div><div class="feat-title">Check-in digitale</div><div class="feat-desc">L'ospite compila i dati da smartphone prima di arrivare. Tu ricevi tutto pronto, senza carta.</div></div>
+      <div class="feat-card"><div class="feat-icon">🚔</div><div class="feat-title">Questura automatica</div><div class="feat-desc">Genera il file per Alloggiati Web con un click. Niente più inserimento manuale.</div></div>
+      <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-title">Ross1000 Lombardia</div><div class="feat-desc">Esporta le statistiche regionali obbligatorie in formato XML direttamente dal gestionale.</div></div>
+      <div class="feat-card"><div class="feat-icon">🔑</div><div class="feat-title">Serratura smart</div><div class="feat-desc">Integrazione SwitchBot per aprire la porta da remoto. Self check-in vero, senza consegna chiavi.</div></div>
+      <div class="feat-card"><div class="feat-icon">📈</div><div class="feat-title">Analitiche</div><div class="feat-desc">Monitora occupazione, ricavi mensili e performance. Capisci cosa funziona e cosa no.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-tag">Prezzi</div>
+    <h2 class="section-title">Semplice e trasparente</h2>
+    <p class="section-desc">Nessun costo di setup, nessun contratto annuale. Paghi mese per mese e disdici quando vuoi.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">Starter</div>
+        <div class="price-amount">€29<span>/mese</span></div>
+        <div class="price-desc">Per chi gestisce un singolo appartamento o B&B.</div>
+        <ul class="price-features">
+          <li>1 struttura</li>
+          <li>Prenotazioni illimitate</li>
+          <li>Check-in digitale</li>
+          <li>Questura / Alloggiati Web</li>
+          <li>Ross1000 Lombardia</li>
+          <li class="price-no">Strutture multiple</li>
+          <li class="price-no">Analitiche avanzate</li>
+        </ul>
+        <a href="#contact" class="btn-plan btn-plan-outline">Contattaci</a>
+      </div>
+      <div class="price-card featured">
+        <div class="price-badge">Più scelto</div>
+        <div class="price-name">Pro</div>
+        <div class="price-amount">€59<span>/mese</span></div>
+        <div class="price-desc">Per chi gestisce più strutture.</div>
+        <ul class="price-features">
+          <li>Fino a 5 strutture</li>
+          <li>Prenotazioni illimitate</li>
+          <li>Check-in digitale</li>
+          <li>Questura / Alloggiati Web</li>
+          <li>Ross1000 Lombardia</li>
+          <li>Analitiche per struttura</li>
+          <li>Supporto prioritario</li>
+        </ul>
+        <a href="#contact" class="btn-plan btn-plan-red">Contattaci</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Unlimited</div>
+        <div class="price-amount">€99<span>/mese</span></div>
+        <div class="price-desc">Per agenzie e property manager.</div>
+        <ul class="price-features">
+          <li>Strutture illimitate</li>
+          <li>Prenotazioni illimitate</li>
+          <li>Check-in digitale</li>
+          <li>Questura / Alloggiati Web</li>
+          <li>Ross1000 Lombardia</li>
+          <li>Analitiche avanzate</li>
+          <li>Supporto dedicato</li>
+        </ul>
+        <a href="#contact" class="btn-plan btn-plan-outline">Contattaci</a>
+      </div>
+    </div>
+    <p class="price-note">✓ Nessun costo di setup &nbsp;·&nbsp; ✓ Disdici quando vuoi &nbsp;·&nbsp; ✓ Supporto incluso</p>
+  </div>
+</section>
+
+<section class="integrations" id="integrations">
+  <div class="container">
+    <div class="section-tag">Integrazioni</div>
+    <h2 class="section-title">Connesso con gli strumenti<br>che già usi</h2>
+    <div class="int-grid">
+      <div class="int-card"><div class="int-icon">🏠</div><div class="int-name">Airbnb</div><div class="int-desc">Import automatico prenotazioni via email</div></div>
+      <div class="int-card"><div class="int-icon">📋</div><div class="int-name">Booking.com</div><div class="int-desc">Sincronizzazione prenotazioni in tempo reale</div></div>
+      <div class="int-card"><div class="int-icon">🚔</div><div class="int-name">Alloggiati Web</div><div class="int-desc">Export file questura con un click</div></div>
+      <div class="int-card"><div class="int-icon">📊</div><div class="int-name">Ross1000</div><div class="int-desc">Statistiche Regione Lombardia in XML</div></div>
+      <div class="int-card"><div class="int-icon">🔑</div><div class="int-name">SwitchBot</div><div class="int-desc">Apertura serratura smart da remoto</div></div>
+      <div class="int-card"><div class="int-icon">📧</div><div class="int-name">Gmail</div><div class="int-desc">Lettura e invio email integrati</div></div>
+      <div class="int-card"><div class="int-icon">📱</div><div class="int-name">PWA Mobile</div><div class="int-desc">Installabile come app su iOS e Android</div></div>
+      <div class="int-card"><div class="int-icon">☁️</div><div class="int-name">Cloud</div><div class="int-desc">Dati sicuri e sincronizzati nel cloud</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="contact">
+  <h2>Pronto a semplificare<br>la tua gestione?</h2>
+  <p>Contattaci per maggiori informazioni o per attivare il tuo piano.</p>
+  <a href="mailto:info@gestaway.com" class="btn-white">📧 Scrivici una mail</a>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><img src="gestaway-logo.svg" alt="Gestaway"></div>
+    <div class="footer-links">
+      <a href="#features">Funzioni</a>
+      <a href="#pricing">Prezzi</a>
+      <a href="mailto:info@gestaway.com">Contatti</a>
+    </div>
+    <div style="font-size:13px">© 2026 Gestaway</div>
+  </div>
+</footer>
+
+</body>
+</html>
