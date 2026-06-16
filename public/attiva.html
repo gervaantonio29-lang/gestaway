@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attiva Gestaway — Scegli il tuo piano</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#c8102e;--navy:#1a2e4a;--muted:#6b7280;--border:#e5e7eb;--light:#f8f8f8}
+body{font-family:'Poppins',sans-serif;color:var(--navy);background:var(--light);min-height:100vh}
+nav{background:var(--navy);padding:0 2rem;display:flex;align-items:center;height:64px}
+nav a{text-decoration:none}
+nav img{height:44px;width:auto;border-radius:6px}
+.container{max-width:900px;margin:0 auto;padding:4rem 2rem}
+h1{font-size:2rem;font-weight:800;margin-bottom:0.5rem;color:var(--navy);text-align:center}
+.subtitle{color:var(--muted);text-align:center;margin-bottom:3rem;font-size:15px}
+
+/* PIANI */
+.piani{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:3rem}
+.piano-card{background:white;border:2px solid var(--border);border-radius:12px;padding:2rem;cursor:pointer;transition:all 0.2s;position:relative}
+.piano-card:hover{border-color:var(--red)}
+.piano-card.selected{border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,0.15)}
+.piano-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--red);color:white;font-size:11px;font-weight:700;padding:3px 14px;border-radius:100px;white-space:nowrap}
+.piano-name{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem}
+.piano-price{font-size:2.5rem;font-weight:800;color:var(--navy);line-height:1}
+.piano-price span{font-size:14px;font-weight:400;color:var(--muted)}
+.piano-desc{font-size:13px;color:var(--muted);margin:0.75rem 0 1rem;line-height:1.6}
+.piano-features{list-style:none}
+.piano-features li{font-size:13px;padding:5px 0;color:var(--navy);display:flex;align-items:center;gap:8px}
+.piano-features li::before{content:'✓';color:var(--red);font-weight:800}
+
+/* FORM */
+.form-card{background:white;border:1px solid var(--border);border-radius:12px;padding:2.5rem}
+.form-card h2{font-size:1.2rem;font-weight:700;margin-bottom:1.5rem;color:var(--navy)}
+.form-group{margin-bottom:1.25rem}
+label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px}
+input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;font-family:'Poppins',sans-serif;outline:none;transition:border 0.2s}
+input:focus{border-color:var(--red)}
+.checkbox-group{display:flex;align-items:flex-start;gap:10px;margin-bottom:1.5rem}
+.checkbox-group input{width:auto;margin-top:2px}
+.checkbox-group label{font-size:13px;color:var(--muted);font-weight:400;line-height:1.6}
+.checkbox-group a{color:var(--red)}
+.btn-submit{width:100%;background:var(--red);color:white;border:none;padding:15px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:'Poppins',sans-serif}
+.btn-submit:hover{opacity:0.9}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+.error{color:var(--red);font-size:13px;margin-top:0.5rem;display:none}
+.piano-selected-info{background:rgba(200,16,46,0.05);border:1px solid rgba(200,16,46,0.2);border-radius:8px;padding:12px 16px;margin-bottom:1.5rem;font-size:14px;color:var(--navy)}
+
+@media(max-width:700px){.piani{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/"><img src="gestaway-logo.svg" alt="Gestaway"></a>
+</nav>
+
+<div class="container">
+  <h1>Attiva il tuo account</h1>
+  <p class="subtitle">Scegli il piano e inizia subito. Nessun costo di setup, disdici quando vuoi.</p>
+
+  <div class="piani">
+    <div class="piano-card" data-piano="starter" onclick="selezionaPiano(this)">
+      <div class="piano-name">Starter</div>
+      <div class="piano-price">€29<span>/mese</span></div>
+      <div class="piano-desc">Per chi gestisce un singolo appartamento o B&B.</div>
+      <ul class="piano-features">
+        <li>1 struttura</li>
+        <li>Prenotazioni illimitate</li>
+        <li>Check-in digitale</li>
+        <li>Questura / Alloggiati Web</li>
+        <li>Portale del Turismo</li>
+      </ul>
+    </div>
+    <div class="piano-card" data-piano="pro" onclick="selezionaPiano(this)">
+      <div class="piano-badge">Più scelto</div>
+      <div class="piano-name">Pro</div>
+      <div class="piano-price">€59<span>/mese</span></div>
+      <div class="piano-desc">Per chi gestisce più strutture.</div>
+      <ul class="piano-features">
+        <li>Fino a 5 strutture</li>
+        <li>Prenotazioni illimitate</li>
+        <li>Check-in digitale</li>
+        <li>Questura / Alloggiati Web</li>
+        <li>Portale del Turismo</li>
+        <li>Analitiche per struttura</li>
+        <li>Supporto prioritario</li>
+      </ul>
+    </div>
+    <div class="piano-card" data-piano="unlimited" onclick="selezionaPiano(this)">
+      <div class="piano-name">Unlimited</div>
+      <div class="piano-price">€99<span>/mese</span></div>
+      <div class="piano-desc">Per agenzie e property manager.</div>
+      <ul class="piano-features">
+        <li>Strutture illimitate</li>
+        <li>Prenotazioni illimitate</li>
+        <li>Check-in digitale</li>
+        <li>Questura / Alloggiati Web</li>
+        <li>Portale del Turismo</li>
+        <li>Analitiche avanzate</li>
+        <li>Supporto dedicato</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>I tuoi dati</h2>
+    <div class="piano-selected-info" id="pianoInfo" style="display:none"></div>
+    <div class="form-group">
+      <label>Nome e Cognome *</label>
+      <input type="text" id="nome" placeholder="Mario Rossi" required>
+    </div>
+    <div class="form-group">
+      <label>Email *</label>
+      <input type="email" id="email" placeholder="mario@esempio.com" required>
+    </div>
+    <div class="form-group">
+      <label>Nome struttura *</label>
+      <input type="text" id="struttura" placeholder="B&B Il Lago" required>
+    </div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="termini">
+      <label for="termini">Ho letto e accetto i <a href="/termini.html" target="_blank">Termini e Condizioni</a> e la <a href="/privacy.html" target="_blank">Privacy Policy</a>, incluso il trattamento dei dati ai sensi del GDPR.</label>
+    </div>
+    <div class="error" id="errore">Compila tutti i campi e accetta i termini.</div>
+    <button class="btn-submit" id="btnPaga" onclick="procediPagamento()">🔒 Procedi al pagamento</button>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:1rem">Pagamento sicuro tramite Stripe · Puoi disdire in qualsiasi momento</p>
+  </div>
+</div>
+
+<script>
+let pianoSelezionato = null;
+
+function selezionaPiano(card) {
+  document.querySelectorAll('.piano-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  pianoSelezionato = card.dataset.piano;
+  const nomi = { starter: 'Starter — €29/mese', pro: 'Pro — €59/mese', unlimited: 'Unlimited — €99/mese' };
+  const info = document.getElementById('pianoInfo');
+  info.style.display = 'block';
+  info.textContent = '✓ Piano selezionato: ' + nomi[pianoSelezionato];
+}
+
+async function procediPagamento() {
+  const nome = document.getElementById('nome').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const struttura = document.getElementById('struttura').value.trim();
+  const termini = document.getElementById('termini').checked;
+  const errore = document.getElementById('errore');
+
+  if (!pianoSelezionato || !nome || !email || !struttura || !termini) {
+    errore.style.display = 'block';
+    errore.textContent = !pianoSelezionato ? 'Seleziona un piano.' : 'Compila tutti i campi e accetta i termini.';
+    return;
+  }
+  errore.style.display = 'none';
+
+  const btn = document.getElementById('btnPaga');
+  btn.disabled = true;
+  btn.textContent = 'Reindirizzamento...';
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ piano: pianoSelezionato, nome, email, struttura })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      errore.style.display = 'block';
+      errore.textContent = 'Errore: ' + (data.error || 'riprova.');
+      btn.disabled = false;
+      btn.textContent = '🔒 Procedi al pagamento';
+    }
+  } catch (e) {
+    errore.style.display = 'block';
+    errore.textContent = 'Errore di connessione, riprova.';
+    btn.disabled = false;
+    btn.textContent = '🔒 Procedi al pagamento';
+  }
+}
+</script>
+</body>
+</html>
