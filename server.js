@@ -16,10 +16,11 @@ const supabase = process.env.SUPABASE_URL ? createClient(
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/sitemap.xml', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
 // ─── STATIC FILES ─────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
