@@ -24,19 +24,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --red:#c8102e;
-  --navy:#1a2e4a;
-  --white:#ffffff;
-  --light:#f8f8f8;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-}
+:root{--red:#c8102e;--navy:#1a2e4a;--white:#ffffff;--light:#f8f8f8;--muted:#6b7280;--border:#e5e7eb}
 html{scroll-behavior:smooth}
 body{font-family:'Poppins',sans-serif;color:var(--navy);background:var(--white)}
 a{text-decoration:none;color:inherit}
-
-/* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
 .nav-logo img{height:44px;width:auto;border-radius:6px}
 .nav-links{display:flex;gap:2rem}
@@ -44,8 +35,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .nav-links a:hover{color:white}
 .nav-cta{background:var(--red);color:white;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:700;transition:opacity 0.2s}
 .nav-cta:hover{opacity:0.85}
-
-/* HERO */
 .hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 5rem;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(200,16,46,0.15) 0%,transparent 70%)}
 .hero-content{position:relative;z-index:1;max-width:800px}
@@ -58,15 +47,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .btn-red:hover{opacity:0.9;transform:translateY(-1px)}
 .btn-outline{border:2px solid rgba(255,255,255,0.3);color:white;padding:15px 36px;border-radius:8px;font-size:15px;font-weight:600;transition:all 0.2s;display:inline-block}
 .btn-outline:hover{border-color:white}
-
-/* TRUST */
 .trust{background:white;border-bottom:1px solid var(--border);padding:1.5rem 2rem}
 .trust-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
 .trust-label{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
 .trust-items{display:flex;gap:2.5rem;flex-wrap:wrap;align-items:center}
 .trust-item{color:var(--navy);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-
-/* FEATURES */
 .features{background:var(--light);padding:6rem 2rem}
 .container{max-width:1080px;margin:0 auto}
 .section-tag{color:var(--red);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:0.75rem}
@@ -78,8 +63,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .feat-icon{font-size:2rem;margin-bottom:1rem}
 .feat-title{font-weight:700;font-size:15px;margin-bottom:0.5rem;color:var(--navy)}
 .feat-desc{color:var(--muted);font-size:14px;line-height:1.7}
-
-/* PRICING */
+/* SCREENSHOTS */
+.screenshots{background:white;padding:5rem 2rem}
+.screenshots-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:3rem}
+.screenshot-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(26,46,74,0.08)}
+.screenshot-card img{width:100%;height:auto;display:block}
+.screenshot-label{padding:1rem 1.5rem;background:var(--light);font-size:14px;font-weight:700;color:var(--navy)}
 .pricing{background:white;padding:6rem 2rem}
 .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:3rem}
 .price-card{border:2px solid var(--border);border-radius:12px;padding:2.5rem 2rem;position:relative;transition:all 0.2s}
@@ -102,8 +91,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .btn-plan-outline{border:2px solid var(--border);color:var(--navy)}
 .btn-plan-outline:hover{border-color:var(--red);color:var(--red)}
 .price-note{text-align:center;margin-top:2rem;color:var(--muted);font-size:13px}
-
-/* INTEGRATIONS */
 .integrations{background:var(--light);padding:6rem 2rem}
 .int-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:2.5rem}
 .int-card{background:white;border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:all 0.2s}
@@ -111,8 +98,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .int-icon{font-size:2rem;margin-bottom:0.75rem}
 .int-name{font-weight:700;font-size:14px;color:var(--navy);margin-bottom:4px}
 .int-desc{font-size:12px;color:var(--muted);line-height:1.5}
-
-/* CTA */
 .cta{background:var(--red);padding:6rem 2rem;text-align:center}
 .cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:800;color:white;margin-bottom:1rem}
 .cta p{color:rgba(255,255,255,0.8);font-size:16px;line-height:1.7;margin-bottom:2.5rem}
@@ -121,54 +106,31 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .tp-badge{display:flex;align-items:center;gap:6px;background:white;border:1px solid var(--border);border-radius:6px;padding:6px 12px;text-decoration:none;transition:all 0.2s}
 .tp-logo{font-size:13px;font-weight:800;color:#00b67a}
 .tp-stars{color:#00b67a;font-size:14px}
-/* FOOTER */
 footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
 .footer-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
 .footer-logo img{height:36px;width:auto;border-radius:4px}
 .footer-links{display:flex;gap:2rem}
 .footer-links a{color:rgba(255,255,255,0.4);font-size:13px;transition:color 0.2s}
 .footer-links a:hover{color:white}
-
-@media(max-width:900px){
-  .features-grid,.pricing-grid,.int-grid{grid-template-columns:1fr 1fr}
-  .pricing-grid{max-width:480px;margin-left:auto;margin-right:auto;margin-top:3rem}
-}
-@media(max-width:600px){
-  .nav-links,.nav-cta{display:none}
-  .features-grid,.int-grid{grid-template-columns:1fr}
-  .trust-items{gap:1.5rem}
-  .footer-inner{flex-direction:column;text-align:center}
-}
+@media(max-width:900px){.features-grid,.pricing-grid,.int-grid,.screenshots-grid{grid-template-columns:1fr 1fr}.pricing-grid{max-width:480px;margin-left:auto;margin-right:auto;margin-top:3rem}}
+@media(max-width:600px){.nav-links,.nav-cta{display:none}.features-grid,.int-grid,.screenshots-grid{grid-template-columns:1fr}.trust-items{gap:1.5rem}.footer-inner{flex-direction:column;text-align:center}}
 </style>
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18246505827"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'AW-18246505827');
-</script>
 <body>
-
 <nav>
-  <div class="nav-logo">
-    <a href="/"><img src="gestaway-logo.svg" alt="Gestaway"></a>
-  </div>
+  <div class="nav-logo"><a href="/"><img src="gestaway-logo.svg" alt="Gestaway"></a></div>
   <div class="nav-links">
     <a href="#features">Funzioni</a>
     <a href="#pricing">Prezzi</a>
     <a href="#integrations">Integrazioni</a>
     <a href="#contact">Contatti</a>
   </div>
- <a href="https://www.trustpilot.com/review/gestaway.com" target="_blank" class="tp-badge">
+  <a href="https://www.trustpilot.com/review/gestaway.com" target="_blank" class="tp-badge">
     <span class="tp-logo">★ Trustpilot</span>
     <span class="tp-stars">★★★★★</span>
   </a>
   <a href="/attiva" class="nav-cta" onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Attiva ora nav'})">Attiva ora</a>
 </nav>
-
 <section class="hero">
   <div class="hero-content">
     <div class="hero-tag">Software per B&B · Affitti brevi · Italia</div>
@@ -180,7 +142,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
 <div class="trust">
   <div class="trust-inner">
     <span class="trust-label">Integrato con</span>
@@ -191,11 +152,10 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
       <div class="trust-item">📊 Portale del Turismo</div>
       <div class="trust-item">🔑 SwitchBot</div>
       <div class="trust-item">📧 Gmail</div>
-<div class="trust-item"><a href="https://www.trustpilot.com/review/gestaway.com" target="_blank" style="color:inherit;display:flex;align-items:center;gap:6px">⭐ Trustpilot</a></div>
+      <div class="trust-item"><a href="https://www.trustpilot.com/review/gestaway.com" target="_blank" style="color:inherit;display:flex;align-items:center;gap:6px">⭐ Trustpilot</a></div>
     </div>
   </div>
 </div>
-
 <section class="features" id="features">
   <div class="container">
     <div class="section-tag">Funzionalità</div>
@@ -211,7 +171,23 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
+<section class="screenshots">
+  <div class="container">
+    <div class="section-tag">Il software in azione</div>
+    <h2 class="section-title">Semplice da usare,<br>potente quando serve</h2>
+    <p class="section-desc">Ecco come appare Gestaway ogni giorno — pulito, veloce e pensato per chi gestisce affitti brevi.</p>
+    <div class="screenshots-grid">
+      <div class="screenshot-card">
+        <img src="screenshot-calendario.jpg" alt="Calendario prenotazioni Gestaway">
+        <div class="screenshot-label">📅 Calendario prenotazioni — Airbnb, Booking e manuali in un unico posto</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="screenshot-checkin.jpg" alt="Check-in digitale Gestaway">
+        <div class="screenshot-label">✅ Check-in digitale — multilingua, da smartphone, senza carta</div>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="pricing" id="pricing">
   <div class="container">
     <div class="section-tag">Prezzi</div>
@@ -223,15 +199,9 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
         <div class="price-amount">€29<span>/mese</span></div>
         <div class="price-desc">Per chi gestisce un singolo appartamento o B&B.</div>
         <ul class="price-features">
-          <li>1 struttura</li>
-          <li>Prenotazioni illimitate</li>
-          <li>Check-in digitale</li>
-          <li>Questura / Alloggiati Web</li>
-          <li>Portale del Turismo</li>
-          <li class="price-no">Strutture multiple</li>
-          <li class="price-no">Analitiche avanzate</li>
+          <li>1 struttura</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li class="price-no">Strutture multiple</li><li class="price-no">Analitiche avanzate</li>
         </ul>
-        <a href="#contact" class="btn-plan btn-plan-outline">Contattaci</a>
+        <a href="/attiva" class="btn-plan btn-plan-outline">Attiva ora</a>
       </div>
       <div class="price-card featured">
         <div class="price-badge">Più scelto</div>
@@ -239,36 +209,23 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
         <div class="price-amount">€59<span>/mese</span></div>
         <div class="price-desc">Per chi gestisce più strutture.</div>
         <ul class="price-features">
-          <li>Fino a 5 strutture</li>
-          <li>Prenotazioni illimitate</li>
-          <li>Check-in digitale</li>
-          <li>Questura / Alloggiati Web</li>
-          <li>Portale del Turismo</li>
-          <li>Analitiche per struttura</li>
-          <li>Supporto prioritario</li>
+          <li>Fino a 5 strutture</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li>Analitiche per struttura</li><li>Supporto prioritario</li>
         </ul>
-        <a href="#contact" class="btn-plan btn-plan-red">Contattaci</a>
+        <a href="/attiva" class="btn-plan btn-plan-red">Attiva ora</a>
       </div>
       <div class="price-card">
         <div class="price-name">Unlimited</div>
         <div class="price-amount">€99<span>/mese</span></div>
         <div class="price-desc">Per agenzie e property manager.</div>
         <ul class="price-features">
-          <li>Strutture illimitate</li>
-          <li>Prenotazioni illimitate</li>
-          <li>Check-in digitale</li>
-          <li>Questura / Alloggiati Web</li>
-          <li>Portale del Turismo</li>
-          <li>Analitiche avanzate</li>
-          <li>Supporto dedicato</li>
+          <li>Strutture illimitate</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li>Analitiche avanzate</li><li>Supporto dedicato</li>
         </ul>
-        <a href="#contact" class="btn-plan btn-plan-outline">Contattaci</a>
+        <a href="/attiva" class="btn-plan btn-plan-outline">Attiva ora</a>
       </div>
     </div>
     <p class="price-note">✓ Nessun costo di setup &nbsp;·&nbsp; ✓ Disdici quando vuoi &nbsp;·&nbsp; ✓ Supporto incluso</p>
   </div>
 </section>
-
 <section class="integrations" id="integrations">
   <div class="container">
     <div class="section-tag">Integrazioni</div>
@@ -285,13 +242,11 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
 <section class="cta" id="contact">
   <h2>Pronto a semplificare<br>la tua gestione?</h2>
   <p>Contattaci per maggiori informazioni o per attivare il tuo piano.</p>
   <a href="/attiva" class="btn-white" onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Attiva ora footer'})">🚀 Attiva ora</a>
 </section>
-
 <footer>
   <div class="footer-inner">
     <div class="footer-logo"><img src="gestaway-logo.svg" alt="Gestaway"></div>
@@ -303,6 +258,5 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     <div style="font-size:13px">© 2026 Gestaway · P.IVA IT04249460132 · <a href="/privacy.html" style="color:rgba(255,255,255,0.4)">Privacy Policy</a> · <a href="/termini.html" style="color:rgba(255,255,255,0.4)">Termini e Condizioni</a></div>
   </div>
 </footer>
-
 </body>
 </html>
