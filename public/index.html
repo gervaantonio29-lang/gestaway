@@ -57,6 +57,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .section-tag{color:var(--red);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:0.75rem}
 .section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;line-height:1.2;margin-bottom:1rem;color:var(--navy)}
 .section-desc{color:var(--muted);font-size:16px;line-height:1.8;max-width:560px}
+.confronto{background:var(--white);padding:6rem 2rem}
+.confronto .section-desc{margin-bottom:2.5rem}
+.compare-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px}
+.compare{width:100%;border-collapse:collapse;min-width:720px;font-size:14px}
+.compare th,.compare td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.compare thead th{background:var(--navy);color:#fff;font-weight:700;font-size:13px}
+.compare thead th.col-us{background:var(--red)}
+.compare tbody td{color:var(--navy)}
+.compare td.crit{font-weight:600;color:var(--muted)}
+.compare td.us{background:rgba(200,16,46,0.06);font-weight:600}
+.compare .yes{color:var(--red);font-weight:700}
+.compare .no{color:var(--muted)}
+.compare tbody tr:last-child td{border-bottom:none}
+.compare-note{color:var(--muted);font-size:12px;margin-top:1rem;line-height:1.6}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:3rem}
 .feat-card{background:white;border:1px solid var(--border);border-radius:12px;padding:2rem;transition:all 0.2s}
 .feat-card:hover{box-shadow:0 8px 32px rgba(200,16,46,0.1);transform:translateY(-2px)}
@@ -122,6 +136,7 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
   <div class="nav-links">
     <a href="#features">Funzioni</a>
     <a href="#pricing">Prezzi</a>
+    <a href="#confronto">Confronto</a>
     <a href="#integrations">Integrazioni</a>
     <a href="#contact">Contatti</a>
   </div>
@@ -195,7 +210,7 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     <p class="section-desc">Nessun costo di setup, nessun contratto annuale. Paghi mese per mese e disdici quando vuoi.</p>
     <div class="pricing-grid">
       <div class="price-card">
-        <div class="price-name">Starter</div>
+        <div class="price-name">Base</div>
         <div class="price-amount">€29<span>/mese</span></div>
         <div class="price-desc">Per chi gestisce un singolo appartamento o B&B.</div>
         <ul class="price-features">
@@ -205,25 +220,112 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
       </div>
       <div class="price-card featured">
         <div class="price-badge">Più scelto</div>
-        <div class="price-name">Pro</div>
+        <div class="price-name">Professionale</div>
         <div class="price-amount">€59<span>/mese</span></div>
         <div class="price-desc">Per chi gestisce più strutture.</div>
         <ul class="price-features">
-          <li>Fino a 5 strutture</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li>Analitiche per struttura</li><li>Supporto prioritario</li>
+          <li>Fino a 3 strutture</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li>Analitiche per struttura</li><li>Supporto prioritario</li>
         </ul>
         <a href="/attiva" class="btn-plan btn-plan-red">Attiva ora</a>
       </div>
       <div class="price-card">
-        <div class="price-name">Unlimited</div>
-        <div class="price-amount">€99<span>/mese</span></div>
-        <div class="price-desc">Per agenzie e property manager.</div>
+        <div class="price-name">Domus</div>
+        <div class="price-amount">€35<span>/mese</span></div>
+        <div class="price-desc">Il gestionale con sito web e dominio inclusi.</div>
         <ul class="price-features">
-          <li>Strutture illimitate</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li>Analitiche avanzate</li><li>Supporto dedicato</li>
+          <li>Sito web professionale incluso</li><li>Dominio incluso</li><li>Prenotazioni illimitate</li><li>Check-in digitale</li><li>Questura / Alloggiati Web</li><li>Portale del Turismo</li><li class="price-no">Prova gratuita 14 giorni</li>
         </ul>
         <a href="/attiva" class="btn-plan btn-plan-outline">Attiva ora</a>
       </div>
     </div>
     <p class="price-note">✓ Nessun costo di setup &nbsp;·&nbsp; ✓ Disdici quando vuoi &nbsp;·&nbsp; ✓ Supporto incluso</p>
+  </div>
+</section>
+<section class="confronto" id="confronto">
+  <div class="container">
+    <div class="section-tag">Confronto</div>
+    <h2 class="section-title">Perché Gestaway</h2>
+    <p class="section-desc">Prezzi chiari in euro, più strutture incluse e adempimenti italiani nativi. Ecco come ci posizioniamo rispetto alle alternative più note.</p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            <th class="col-us">Gestaway</th>
+            <th>Lodgify</th>
+            <th>Hostaway</th>
+            <th>TeamSystem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="crit">Prezzo, 1 struttura</td>
+            <td class="us">€29/mese</td>
+            <td>in pratica €40–75/mese per proprietà (vetrina da ~$16)</td>
+            <td>su preventivo</td>
+            <td>da ~€45/mese +IVA (annuale)</td>
+          </tr>
+          <tr>
+            <td class="crit">Più strutture</td>
+            <td class="us">Fino a 3 incluse a €59/mese</td>
+            <td>Si paga per ogni proprietà</td>
+            <td>Per unità, su preventivo</td>
+            <td>Per alloggio</td>
+          </tr>
+          <tr>
+            <td class="crit">Prezzi pubblici</td>
+            <td class="us"><span class="yes">Sì</span></td>
+            <td><span class="yes">Sì</span></td>
+            <td><span class="no">No, solo demo</span></td>
+            <td><span class="no">Parziali</span></td>
+          </tr>
+          <tr>
+            <td class="crit">Valuta</td>
+            <td class="us">Euro</td>
+            <td>Dollari</td>
+            <td>Dollari</td>
+            <td>Euro</td>
+          </tr>
+          <tr>
+            <td class="crit">Prova gratuita</td>
+            <td class="us">14 giorni</td>
+            <td>7 giorni</td>
+            <td><span class="no">No (trial a pagamento)</span></td>
+            <td>Variabile</td>
+          </tr>
+          <tr>
+            <td class="crit">Commissioni sulle prenotazioni</td>
+            <td class="us">Nessuna</td>
+            <td>1,9% sul piano base</td>
+            <td>Variabile</td>
+            <td>Nessuna</td>
+          </tr>
+          <tr>
+            <td class="crit">CIN, Questura/Alloggiati Web, Portale del Turismo</td>
+            <td class="us"><span class="yes">Nativi</span></td>
+            <td>Limitati / via integrazioni</td>
+            <td>Limitati / via integrazioni</td>
+            <td><span class="yes">Nativi</span></td>
+          </tr>
+          <tr>
+            <td class="crit">Sito web + dominio</td>
+            <td class="us">Inclusi (Domus €35/mese)</td>
+            <td>Nei piani superiori</td>
+            <td>Componente a pagamento</td>
+            <td>Booking engine</td>
+          </tr>
+          <tr>
+            <td class="crit">Attivazione</td>
+            <td class="us">Self-service in pochi minuti</td>
+            <td>Self-service</td>
+            <td>Demo + onboarding a pagamento</td>
+            <td>Consulenza dedicata</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="compare-note">Dati dei competitor raccolti da fonti pubbliche a giugno 2026; prezzi e funzionalità possono variare nel tempo. Lodgify e Hostaway applicano prezzi in dollari; gli importi sono indicativi.</p>
+    <div style="text-align:center;margin-top:2.5rem"><a href="/attiva" class="btn-red">Inizia la prova gratuita</a></div>
   </div>
 </section>
 <section class="integrations" id="integrations">
