@@ -30,10 +30,9 @@ app.get('/attiva', (req, res) => {
 
 // Prezzi Stripe (price IDs da Stripe dashboard)
 const PIANI = {
-  starter: process.env.STRIPE_PRICE_STARTER,
+  base: process.env.STRIPE_PRICE_BASE,
+  professionale: process.env.STRIPE_PRICE_PROFESSIONALE,
   domus: process.env.STRIPE_PRICE_DOMUS,
-  pro: process.env.STRIPE_PRICE_PRO,
-  unlimited: process.env.STRIPE_PRICE_UNLIMITED,
 };
 
 // Piani SENZA prova gratuita (es. Domus include il sito + dominio)

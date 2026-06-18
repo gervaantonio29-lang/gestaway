@@ -64,11 +64,11 @@ input:focus{border-color:var(--red)}
 
 <div class="container">
   <h1>Attiva il tuo account</h1>
-  <p class="subtitle">Scegli il piano e inizia subito. Nessun costo di setup, disdici quando vuoi.</p>
+  <p class="subtitle">Scegli il piano e inizia subito: 14 giorni di prova gratuita, nessun costo di setup, disdici quando vuoi.</p>
 
   <div class="piani">
-    <div class="piano-card" data-piano="starter" onclick="selezionaPiano(this)">
-      <div class="piano-name">Starter</div>
+    <div class="piano-card" data-piano="base" onclick="selezionaPiano(this)">
+      <div class="piano-name">Base</div>
       <div class="piano-price">€29<span>/mese</span></div>
       <div class="piano-desc">Per chi gestisce un singolo appartamento o B&B.</div>
       <ul class="piano-features">
@@ -80,9 +80,9 @@ input:focus{border-color:var(--red)}
         <li>Formazione iniziale inclusa</li>
       </ul>
     </div>
-    <div class="piano-card" data-piano="pro" onclick="selezionaPiano(this)">
+    <div class="piano-card" data-piano="professionale" onclick="selezionaPiano(this)">
       <div class="piano-badge">Più scelto</div>
-      <div class="piano-name">Pro</div>
+      <div class="piano-name">Professionale</div>
       <div class="piano-price">€59<span>/mese</span></div>
       <div class="piano-desc">Per chi gestisce più strutture.</div>
       <ul class="piano-features">
@@ -96,28 +96,28 @@ input:focus{border-color:var(--red)}
         <li>Formazione iniziale inclusa</li>
       </ul>
     </div>
-    <div class="piano-card" data-piano="unlimited" onclick="selezionaPiano(this)">
-      <div class="piano-name">Unlimited</div>
-      <div class="piano-price">€200<span>/mese</span></div>
-      <div class="piano-desc">Per agenzie e property manager.</div>
+    <div class="piano-card" data-piano="domus" onclick="selezionaPiano(this)">
+      <div class="piano-badge">Sito incluso</div>
+      <div class="piano-name">Domus</div>
+      <div class="piano-price">€35<span>/mese</span></div>
+      <div class="piano-desc">Il gestionale con sito web e dominio inclusi.</div>
       <ul class="piano-features">
-        <li>Fino a 10 strutture</li>
+        <li>Sito web professionale incluso</li>
+        <li>Dominio incluso</li>
         <li>Prenotazioni illimitate</li>
         <li>Check-in digitale</li>
         <li>Questura / Alloggiati Web</li>
         <li>Portale del Turismo</li>
-        <li>Analitiche avanzate</li>
-        <li>Supporto dedicato</li>
         <li>Formazione iniziale inclusa</li>
       </ul>
     </div>
     <div class="piano-card piano-custom">
       <div class="piano-name">Personalizzato</div>
       <div class="piano-price-custom">Su misura</div>
-      <div class="piano-desc">Per chi gestisce più di 10 strutture o ha esigenze specifiche.</div>
+      <div class="piano-desc">Per chi gestisce più di 3 strutture o ha esigenze specifiche.</div>
       <ul class="piano-features">
         <li>Strutture illimitate</li>
-        <li>Tutte le funzionalità Unlimited</li>
+        <li>Tutte le funzionalità Professionale</li>
         <li>Integrazioni dedicate</li>
         <li>Supporto dedicato</li>
         <li>Formazione iniziale inclusa</li>
@@ -150,22 +150,37 @@ input:focus{border-color:var(--red)}
       <label for="termini">Ho letto e accetto i <a href="/termini.html" target="_blank">Termini e Condizioni</a> e la <a href="/privacy.html" target="_blank">Privacy Policy</a>, incluso il trattamento dei dati ai sensi del GDPR.</label>
     </div>
     <div class="error" id="errore">Compila tutti i campi e accetta i termini.</div>
-    <button class="btn-submit" id="btnPaga" onclick="procediPagamento()">🔒 Procedi al pagamento</button>
-    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:1rem">Pagamento sicuro tramite Stripe · Puoi disdire in qualsiasi momento</p>
+    <button class="btn-submit" id="btnPaga" onclick="procediPagamento()">🔒 Inizia la prova gratuita</button>
+    <p id="notaPagamento" style="text-align:center;font-size:12px;color:var(--muted);margin-top:1rem">14 giorni gratis · Nessun addebito ora · Pagamento sicuro tramite Stripe · Disdici quando vuoi</p>
   </div>
 </div>
 
 <script>
 let pianoSelezionato = null;
 
+// Piani senza prova gratuita (devono combaciare con PIANI_SENZA_TRIAL nel server.js)
+const PIANI_SENZA_TRIAL = ['domus'];
+
+function labelPagamento() {
+  return PIANI_SENZA_TRIAL.includes(pianoSelezionato)
+    ? '🔒 Procedi al pagamento'
+    : '🔒 Inizia la prova gratuita';
+}
+
 function selezionaPiano(card) {
   document.querySelectorAll('.piano-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
   pianoSelezionato = card.dataset.piano;
-  const nomi = { starter: 'Starter — €29/mese', pro: 'Pro — €59/mese', unlimited: 'Unlimited — €200/mese' };
+  const nomi = { base: 'Base — €29/mese', professionale: 'Professionale — €59/mese', domus: 'Domus — €35/mese · sito + dominio' };
   const info = document.getElementById('pianoInfo');
   info.style.display = 'block';
   info.textContent = '✓ Piano selezionato: ' + nomi[pianoSelezionato];
+  const btn = document.getElementById('btnPaga');
+  if (!btn.disabled) btn.textContent = labelPagamento();
+  const nota = document.getElementById('notaPagamento');
+  if (nota) nota.textContent = PIANI_SENZA_TRIAL.includes(pianoSelezionato)
+    ? 'Addebito immediato · Pagamento sicuro tramite Stripe · Disdici quando vuoi'
+    : '14 giorni gratis · Nessun addebito ora · Pagamento sicuro tramite Stripe · Disdici quando vuoi';
 }
 
 async function procediPagamento() {
@@ -208,13 +223,13 @@ async function procediPagamento() {
       errore.style.display = 'block';
       errore.textContent = 'Errore: ' + (data.error || 'riprova.');
       btn.disabled = false;
-      btn.textContent = '🔒 Procedi al pagamento';
+      btn.textContent = labelPagamento();
     }
   } catch (e) {
     errore.style.display = 'block';
     errore.textContent = 'Errore di connessione, riprova.';
     btn.disabled = false;
-    btn.textContent = '🔒 Procedi al pagamento';
+    btn.textContent = labelPagamento();
   }
 }
 </script>
