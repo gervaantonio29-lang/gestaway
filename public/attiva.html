@@ -17,16 +17,21 @@ h1{font-size:2rem;font-weight:800;margin-bottom:0.5rem;color:var(--navy);text-al
 .subtitle{color:var(--muted);text-align:center;margin-bottom:3rem;font-size:15px}
 
 /* PIANI */
-.piani{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:3rem}
-.piano-card{background:white;border:2px solid var(--border);border-radius:12px;padding:2rem;cursor:pointer;transition:all 0.2s;position:relative}
+.piani{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:3rem}
+.piano-card{background:white;border:2px solid var(--border);border-radius:12px;padding:1.5rem;cursor:pointer;transition:all 0.2s;position:relative}
 .piano-card:hover{border-color:var(--red)}
 .piano-card.selected{border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,0.15)}
+.piano-card.piano-custom{cursor:default;display:flex;flex-direction:column}
+.piano-card.piano-custom:hover{border-color:var(--border)}
+.piano-price-custom{font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1.5}
+.btn-richiesta{margin-top:auto;display:block;text-align:center;background:var(--navy);color:white;text-decoration:none;padding:11px;border-radius:8px;font-size:13px;font-weight:700;transition:opacity 0.2s}
+.btn-richiesta:hover{opacity:0.9}
 .piano-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--red);color:white;font-size:11px;font-weight:700;padding:3px 14px;border-radius:100px;white-space:nowrap}
 .piano-name{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem}
-.piano-price{font-size:2.5rem;font-weight:800;color:var(--navy);line-height:1}
+.piano-price{font-size:2.2rem;font-weight:800;color:var(--navy);line-height:1}
 .piano-price span{font-size:14px;font-weight:400;color:var(--muted)}
 .piano-desc{font-size:13px;color:var(--muted);margin:0.75rem 0 1rem;line-height:1.6}
-.piano-features{list-style:none}
+.piano-features{list-style:none;margin-bottom:1rem}
 .piano-features li{font-size:13px;padding:5px 0;color:var(--navy);display:flex;align-items:center;gap:8px}
 .piano-features li::before{content:'✓';color:var(--red);font-weight:800}
 
@@ -47,7 +52,8 @@ input:focus{border-color:var(--red)}
 .error{color:var(--red);font-size:13px;margin-top:0.5rem;display:none}
 .piano-selected-info{background:rgba(200,16,46,0.05);border:1px solid rgba(200,16,46,0.2);border-radius:8px;padding:12px 16px;margin-bottom:1.5rem;font-size:14px;color:var(--navy)}
 
-@media(max-width:700px){.piani{grid-template-columns:1fr}}
+@media(max-width:900px){.piani{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.piani{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -71,6 +77,7 @@ input:focus{border-color:var(--red)}
         <li>Check-in digitale</li>
         <li>Questura / Alloggiati Web</li>
         <li>Portale del Turismo</li>
+        <li>Formazione iniziale inclusa</li>
       </ul>
     </div>
     <div class="piano-card" data-piano="pro" onclick="selezionaPiano(this)">
@@ -79,28 +86,43 @@ input:focus{border-color:var(--red)}
       <div class="piano-price">€59<span>/mese</span></div>
       <div class="piano-desc">Per chi gestisce più strutture.</div>
       <ul class="piano-features">
-        <li>Fino a 5 strutture</li>
+        <li>Fino a 3 strutture</li>
         <li>Prenotazioni illimitate</li>
         <li>Check-in digitale</li>
         <li>Questura / Alloggiati Web</li>
         <li>Portale del Turismo</li>
         <li>Analitiche per struttura</li>
         <li>Supporto prioritario</li>
+        <li>Formazione iniziale inclusa</li>
       </ul>
     </div>
     <div class="piano-card" data-piano="unlimited" onclick="selezionaPiano(this)">
       <div class="piano-name">Unlimited</div>
-      <div class="piano-price">€99<span>/mese</span></div>
+      <div class="piano-price">€200<span>/mese</span></div>
       <div class="piano-desc">Per agenzie e property manager.</div>
       <ul class="piano-features">
-        <li>Strutture illimitate</li>
+        <li>Fino a 10 strutture</li>
         <li>Prenotazioni illimitate</li>
         <li>Check-in digitale</li>
         <li>Questura / Alloggiati Web</li>
         <li>Portale del Turismo</li>
         <li>Analitiche avanzate</li>
         <li>Supporto dedicato</li>
+        <li>Formazione iniziale inclusa</li>
       </ul>
+    </div>
+    <div class="piano-card piano-custom">
+      <div class="piano-name">Personalizzato</div>
+      <div class="piano-price-custom">Su misura</div>
+      <div class="piano-desc">Per chi gestisce più di 10 strutture o ha esigenze specifiche.</div>
+      <ul class="piano-features">
+        <li>Strutture illimitate</li>
+        <li>Tutte le funzionalità Unlimited</li>
+        <li>Integrazioni dedicate</li>
+        <li>Supporto dedicato</li>
+        <li>Formazione iniziale inclusa</li>
+      </ul>
+      <a class="btn-richiesta" href="mailto:info@gestaway.com?subject=Richiesta%20piano%20Personalizzato%20Gestaway&amp;body=Salve%2C%0Avorrei%20ricevere%20informazioni%20sul%20piano%20Personalizzato.%0A%0ANome%3A%0AStruttura%2FAgenzia%3A%0ANumero%20di%20strutture%3A%0ANote%3A">Richiedi un preventivo</a>
     </div>
   </div>
 
@@ -119,6 +141,10 @@ input:focus{border-color:var(--red)}
       <label>Nome struttura *</label>
       <input type="text" id="struttura" placeholder="B&B Il Lago" required>
     </div>
+    <div class="form-group">
+      <label>CIN (Codice Identificativo Nazionale) *</label>
+      <input type="text" id="cin" placeholder="IT039007B100000" maxlength="20" required>
+    </div>
     <div class="checkbox-group">
       <input type="checkbox" id="termini">
       <label for="termini">Ho letto e accetto i <a href="/termini.html" target="_blank">Termini e Condizioni</a> e la <a href="/privacy.html" target="_blank">Privacy Policy</a>, incluso il trattamento dei dati ai sensi del GDPR.</label>
@@ -136,7 +162,7 @@ function selezionaPiano(card) {
   document.querySelectorAll('.piano-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
   pianoSelezionato = card.dataset.piano;
-  const nomi = { starter: 'Starter — €29/mese', pro: 'Pro — €59/mese', unlimited: 'Unlimited — €99/mese' };
+  const nomi = { starter: 'Starter — €29/mese', pro: 'Pro — €59/mese', unlimited: 'Unlimited — €200/mese' };
   const info = document.getElementById('pianoInfo');
   info.style.display = 'block';
   info.textContent = '✓ Piano selezionato: ' + nomi[pianoSelezionato];
@@ -146,12 +172,21 @@ async function procediPagamento() {
   const nome = document.getElementById('nome').value.trim();
   const email = document.getElementById('email').value.trim();
   const struttura = document.getElementById('struttura').value.trim();
+  const cin = document.getElementById('cin').value.replace(/\s+/g, '').toUpperCase();
   const termini = document.getElementById('termini').checked;
   const errore = document.getElementById('errore');
 
-  if (!pianoSelezionato || !nome || !email || !struttura || !termini) {
+  if (!pianoSelezionato || !nome || !email || !struttura || !cin || !termini) {
     errore.style.display = 'block';
     errore.textContent = !pianoSelezionato ? 'Seleziona un piano.' : 'Compila tutti i campi e accetta i termini.';
+    return;
+  }
+
+  // Validazione formato CIN: IT + 3 cifre (prov.) + 3 cifre (comune) + 2 alfanum. (classif.) + 1-8 alfanum.
+  const cinValido = /^IT\d{3}\d{3}[A-Z0-9]{2}[A-Z0-9]{1,8}$/.test(cin);
+  if (!cinValido) {
+    errore.style.display = 'block';
+    errore.textContent = 'Il CIN non sembra valido. Formato atteso: IT + 6 cifre + codice (es. IT039007B100000).';
     return;
   }
   errore.style.display = 'none';
@@ -164,7 +199,7 @@ async function procediPagamento() {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ piano: pianoSelezionato, nome, email, struttura })
+      body: JSON.stringify({ piano: pianoSelezionato, nome, email, struttura, cin })
     });
     const data = await res.json();
     if (data.url) {
