@@ -116,10 +116,11 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
 @media(max-width:900px){
   .features-grid,.int-grid{grid-template-columns:1fr 1fr}
   .pricing-grid{grid-template-columns:1fr 1fr;max-width:620px;margin-left:auto;margin-right:auto;margin-top:3rem}
+  .screenshots-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:600px){
   .nav-links,.nav-cta{display:none}
-  .features-grid,.int-grid,.pricing-grid{grid-template-columns:1fr}
+  .features-grid,.int-grid,.pricing-grid,.screenshots-grid{grid-template-columns:1fr}
   .trust-items{gap:1.5rem}
   .footer-inner{flex-direction:column;text-align:center}
 }
@@ -173,7 +174,7 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
       <div class="section-tag">Anteprima</div>
       <h2 class="section-title">Semplice, veloce, tutto in uno</h2>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+    <div class="screenshots-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.75rem">
       <div style="border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(26,46,74,0.12);border:1px solid var(--border)">
         <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;gap:6px">
           <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.2)"></div>
@@ -191,6 +192,15 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
           <span style="color:rgba(255,255,255,0.5);font-size:11px;margin-left:8px">Check-in digitale ospiti</span>
         </div>
         <img src="screenshot-checkin.jpg" alt="Check-in digitale Gestaway" style="width:100%;display:block">
+      </div>
+      <div style="border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(26,46,74,0.12);border:1px solid var(--border)">
+        <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;gap:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.2)"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.2)"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.2)"></div>
+          <span style="color:rgba(255,255,255,0.5);font-size:11px;margin-left:8px">Analitiche e reddito</span>
+        </div>
+        <img src="screenshot-analitiche.jpg" alt="Analitiche e reddito Gestaway" style="width:100%;display:block">
       </div>
     </div>
     <div style="text-align:center;margin-top:2.5rem">
