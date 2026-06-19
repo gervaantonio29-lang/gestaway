@@ -6,9 +6,13 @@
   "scripts": {
     "start": "node server.js"
   },
- "dependencies": {
-  "express": "^4.18.2",
-  "@supabase/supabase-js": "^2.39.0",
-  "stripe": "^14.0.0"
-}
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "nodemailer": "^6.9.9",
+    "imapflow": "^1.0.162",
+    "mailparser": "^3.6.9",
+    "@supabase/supabase-js": "^2.39.0",
+    "stripe": "^14.0.0"
+  }
 }
