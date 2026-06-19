@@ -1,0 +1,156 @@
+<!-- ═══════════════════════════════════════════════════════════════════
+     SEZIONE DISPONIBILITÀ APPARTAMENTO2 (con prezzi stagionali)
+     Inserire nel index.html di Cà de' Mari, prima del footer
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<style>
+.avail-section { background: var(--bg); padding: 5rem 2rem; }
+.avail-cal { max-width: 640px; margin: 2rem auto 0; }
+.avail-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.avail-cal-title { font-size: 17px; font-weight: 600; font-family: -apple-system, sans-serif; color: var(--green-dark); }
+.avail-nav { display: flex; gap: 6px; }
+.avail-nav button { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; color: var(--green-dark); transition: all 0.15s; }
+.avail-nav button:hover { background: var(--green-dark); color: white; }
+.avail-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.avail-dow { text-align: center; font-size: 11px; font-family: -apple-system, sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 0; font-weight: 600; }
+.avail-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.avail-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 500; transition: all 0.1s; }
+.avail-day.other-month { color: var(--muted); opacity: 0.3; background: none; }
+.avail-day.free { background: #e8f5e9; color: #2e7d32; }
+.avail-day.occupied { background: #fce8e8; color: #c62828; text-decoration: line-through; cursor: not-allowed; }
+.avail-day.today { outline: 2px solid var(--green-mid); outline-offset: -2px; }
+.avail-day.past { opacity: 0.35; background: #f5f5f5; color: #999; }
+.avail-legend { display: flex; gap: 20px; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+.avail-legend-item { display: flex; align-items: center; gap: 6px; font-family: -apple-system, sans-serif; font-size: 12px; color: var(--muted); }
+.avail-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.avail-loading { text-align: center; padding: 2rem; color: var(--muted); font-family: -apple-system, sans-serif; font-size: 14px; }
+.avail-prezzo { text-align: center; margin-top: 1.25rem; font-family: -apple-system, sans-serif; }
+.avail-prezzo-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.avail-prezzo-valore { font-size: 22px; font-weight: 700; color: var(--green-dark); }
+.avail-prezzo-stagione { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 100px; margin-left: 8px; vertical-align: middle; }
+.avail-prezzo-stagione.bassa { background: #e8f0fe; color: #1a73e8; }
+.avail-prezzo-stagione.media { background: #fef3e2; color: #e37400; }
+.avail-prezzo-stagione.alta { background: #fce8e8; color: #c62828; }
+</style>
+
+<section class="avail-section" id="disponibilita">
+  <div class="container">
+    <div class="section-tag" id="avail-tag">Disponibilità</div>
+    <h2 class="section-title">Appartamento 2</h2>
+    <p class="section-desc" id="avail-desc">Controlla le date disponibili prima di prenotare.</p>
+
+    <div class="avail-cal">
+      <div class="avail-cal-header">
+        <div class="avail-nav">
+          <button onclick="availPrev()">‹</button>
+          <button onclick="availToday()">Oggi</button>
+          <button onclick="availNext()">›</button>
+        </div>
+        <div class="avail-cal-title" id="avail-title"></div>
+      </div>
+      <div class="avail-dow-row">
+        <div class="avail-dow">Lun</div><div class="avail-dow">Mar</div><div class="avail-dow">Mer</div>
+        <div class="avail-dow">Gio</div><div class="avail-dow">Ven</div><div class="avail-dow">Sab</div><div class="avail-dow">Dom</div>
+      </div>
+      <div class="avail-grid" id="avail-grid"><div class="avail-loading">Caricamento...</div></div>
+      <div id="avail-prezzo-box" class="avail-prezzo" style="display:none">
+        <div class="avail-prezzo-label">Prezzo per notte</div>
+        <div><span class="avail-prezzo-valore" id="avail-prezzo-valore">—</span><span class="avail-prezzo-stagione" id="avail-prezzo-stagione"></span></div>
+      </div>
+      <div class="avail-legend">
+        <div class="avail-legend-item"><div class="avail-legend-dot" style="background:#e8f5e9;border:1px solid #a5d6a7"></div> Disponibile</div>
+        <div class="avail-legend-item"><div class="avail-legend-dot" style="background:#fce8e8;border:1px solid #ef9a9a"></div> Occupato</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  let availYear, availMonth, occupiedRanges = [], prezzi = {};
+
+  // Stagioni: bassa=Nov,Dic,Gen,Feb | media=Mar,Apr,Ott | alta=Mag,Giu,Lug,Ago,Set
+  function getStagione(mese) {
+    if ([10,11,0,1].includes(mese)) return 'bassa';
+    if ([2,3,9].includes(mese)) return 'media';
+    return 'alta';
+  }
+  const labelStagione = { bassa: '🔵 Bassa stagione', media: '🟡 Media stagione', alta: '🔴 Alta stagione' };
+
+  function availDateToStr(date) {
+    const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  function isOccupied(dateStr) {
+    return occupiedRanges.some(r => dateStr >= r.data_arrivo && dateStr < r.data_partenza);
+  }
+
+  async function loadData() {
+    try {
+      const r = await fetch('/api/disponibilita/Appartamento2');
+      if (r.ok) {
+        const data = await r.json();
+        // Supporta sia vecchio formato (array) che nuovo (oggetto con prenotazioni e prezzi)
+        if (Array.isArray(data)) {
+          occupiedRanges = data;
+        } else {
+          occupiedRanges = data.prenotazioni || [];
+          prezzi = data.prezzi || {};
+        }
+      }
+    } catch(e) { occupiedRanges = []; }
+  }
+
+  function aggiornaPrezzo() {
+    const stagione = getStagione(availMonth);
+    const prezzo = prezzi[stagione];
+    const box = document.getElementById('avail-prezzo-box');
+    if (prezzo) {
+      document.getElementById('avail-prezzo-valore').textContent = '€' + prezzo.toFixed(2);
+      const span = document.getElementById('avail-prezzo-stagione');
+      span.textContent = labelStagione[stagione];
+      span.className = 'avail-prezzo-stagione ' + stagione;
+      box.style.display = 'block';
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  function availRender() {
+    const mesi = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    document.getElementById('avail-title').textContent = mesi[availMonth] + ' ' + availYear;
+    aggiornaPrezzo();
+
+    const oggi = availDateToStr(new Date());
+    const firstDay = new Date(availYear, availMonth, 1);
+    const startDow = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(availYear, availMonth+1, 0).getDate();
+    const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+    let html = '';
+    for (let i = 0; i < totalCells; i++) {
+      const dayOffset = i - startDow;
+      const date = new Date(availYear, availMonth, dayOffset + 1);
+      const dateStr = availDateToStr(date);
+      const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
+      if (!inMonth) { html += `<div class="avail-day other-month"></div>`; continue; }
+      const isPast = dateStr < oggi;
+      const isToday = dateStr === oggi;
+      const occ = isOccupied(dateStr);
+      let cls = isPast ? 'past' : occ ? 'occupied' : 'free';
+      if (isToday) cls += ' today';
+      html += `<div class="avail-day ${cls}" title="${dateStr}">${date.getDate()}</div>`;
+    }
+    document.getElementById('avail-grid').innerHTML = html;
+  }
+
+  window.availPrev = function() { availMonth--; if (availMonth < 0) { availMonth=11; availYear--; } availRender(); };
+  window.availNext = function() { availMonth++; if (availMonth > 11) { availMonth=0; availYear++; } availRender(); };
+  window.availToday = function() { const n=new Date(); availYear=n.getFullYear(); availMonth=n.getMonth(); availRender(); };
+
+  const now = new Date();
+  availYear = now.getFullYear();
+  availMonth = now.getMonth();
+  loadData().then(() => availRender());
+})();
+</script>

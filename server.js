@@ -131,7 +131,7 @@ app.post('/api/checkin/:id/conferma', async (req, res) => {
 
 // ─── CALENDARIO PUBBLICO ──────────────────────────────────────────────────────
 app.get('/api/disponibilita/:nomeAppartamento', async (req, res) => {
-  const { data: apt } = await supabase.from('appartamenti').select('id').ilike('nome', req.params.nomeAppartamento).single();
+  const { data: apt } = await supabase.from('appartamenti').select('id, prezzo_base, iva_percent, markup_sito, rincaro_bassa, rincaro_media, rincaro_alta').ilike('nome', req.params.nomeAppartamento).single();
   if (!apt) return res.status(404).json({ error: 'Appartamento non trovato' });
   const oggi = new Date();
   const y = oggi.getFullYear(), m = String(oggi.getMonth()+1).padStart(2,'0');
@@ -139,7 +139,20 @@ app.get('/api/disponibilita/:nomeAppartamento', async (req, res) => {
   const fine = new Date(y, oggi.getMonth()+3, 0);
   const fineMese = `${fine.getFullYear()}-${String(fine.getMonth()+1).padStart(2,'0')}-${String(fine.getDate()).padStart(2,'0')}`;
   const { data: prens } = await supabase.from('prenotazioni').select('data_arrivo, data_partenza').eq('appartamento_id', apt.id).neq('stato', 'cancellata').gte('data_partenza', inizioMese).lte('data_arrivo', fineMese);
-  res.json(prens || []);
+
+  // Calcola prezzi per stagione (prezzo sito = base * (1+iva%) * (1+markup_sito%) * (1+rincaro_stagione%))
+  const prezzi = {};
+  if (apt.prezzo_base) {
+    const base = apt.prezzo_base;
+    const iva = (apt.iva_percent || 0) / 100;
+    const sito = (apt.markup_sito || 0) / 100;
+    const baseConIva = base * (1 + iva);
+    prezzi.bassa = +(baseConIva * (1 + sito) * (1 + (apt.rincaro_bassa || 0) / 100)).toFixed(2);
+    prezzi.media = +(baseConIva * (1 + sito) * (1 + (apt.rincaro_media || 0) / 100)).toFixed(2);
+    prezzi.alta  = +(baseConIva * (1 + sito) * (1 + (apt.rincaro_alta  || 0) / 100)).toFixed(2);
+  }
+
+  res.json({ prenotazioni: prens || [], prezzi });
 });
 
 // ─── STATIC PAGES ─────────────────────────────────────────────────────────────
