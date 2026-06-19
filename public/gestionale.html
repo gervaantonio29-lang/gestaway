@@ -1698,7 +1698,7 @@ async function loadAnalitiche() {
   const mesiSel = getMesiSelezionati();
 
   const filtrate = prenotazioni.filter(p => {
-    if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
+    if (p.stato === 'cancellata' || p.stato === 'richiesta' || p.fonte === 'blocco') return false;
     if (aptFiltro && p.appartamento_id != aptFiltro) return false;
     if (!p.data_arrivo) return false;
     const mesePren = p.data_arrivo.substring(0, 7);
@@ -1716,7 +1716,7 @@ async function loadAnalitiche() {
     }
   }
   const filtratePrec = prenotazioni.filter(p => {
-    if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
+    if (p.stato === 'cancellata' || p.stato === 'richiesta' || p.fonte === 'blocco') return false;
     if (aptFiltro && p.appartamento_id != aptFiltro) return false;
     if (!p.data_arrivo) return false;
     return mesiPrecedenti.includes(p.data_arrivo.substring(0, 7));
@@ -1853,7 +1853,7 @@ async function renderConfrontoAnnoSuAnno(aptFiltro, mesiSel) {
   const datiPerAnno = {};
   anniDisponibili.forEach(anno => {
     const set = prenotazioni.filter(p => {
-      if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
+      if (p.stato === 'cancellata' || p.stato === 'richiesta' || p.fonte === 'blocco') return false;
       if (aptFiltro && p.appartamento_id != aptFiltro) return false;
       if (!p.data_arrivo) return false;
       const y = parseInt(p.data_arrivo.substring(0,4));
