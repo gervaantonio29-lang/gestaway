@@ -58,6 +58,10 @@
     .form-row.three { grid-template-columns: 1fr; }
     table { font-size: 12px; }
     th, td { padding: 8px 10px; }
+    #page-analitiche > div[style*="grid-template-columns: 220px"] { grid-template-columns: 1fr !important; }
+    #an-metric-nav { display: flex; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+    .metric-nav-item { white-space: nowrap; flex-shrink: 0; }
+    #an-cards-grid { grid-template-columns: 1fr !important; }
   }
 
   /* Page sections */
@@ -74,6 +78,24 @@
   .stat-value.green { color: var(--green); }
   .stat-value.red { color: var(--red); }
   .stat-value.amber { color: var(--amber); }
+
+  /* Analitiche: metric nav sidebar */
+  .metric-nav-item { display: block; width: 100%; text-align: left; background: none; border: none; padding: 8px 10px; font-size: 13px; color: var(--muted); border-radius: 6px; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+  .metric-nav-item:hover { background: var(--bg); color: var(--text); }
+  .metric-nav-item.active { background: var(--text); color: white; font-weight: 500; }
+
+  /* Analitiche: metric card with sparkline */
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; cursor: pointer; transition: box-shadow 0.15s; }
+  .metric-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .metric-card.highlight { grid-column: span 2; }
+  .metric-card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.5rem; }
+  .metric-card-title { font-size: 13px; color: var(--text); font-weight: 600; }
+  .metric-card-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin: 4px 0 0.75rem; }
+  .metric-card-delta { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 100px; }
+  .metric-card-delta.up { background: #e3f4ec; color: var(--green); }
+  .metric-card-delta.down { background: #fbeaea; color: var(--red); }
+  .metric-card-delta.flat { background: var(--bg); color: var(--muted); }
+  .metric-card-spark { width: 100%; height: 60px; }
 
   /* Cards */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; }
@@ -282,13 +304,13 @@
           <table>
             <thead>
               <tr>
-                <th>Ospite</th>
-                <th>Appartamento</th>
-                <th>Arrivo</th>
+                <th>Ospite<br><input type="text" id="f-ospite" placeholder="Cerca..." oninput="renderPrenotazioni()" style="width:100%;margin-top:4px;font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-family:inherit"></th>
+                <th>Appartamento<br><select id="f-apt" onchange="renderPrenotazioni()" style="width:100%;margin-top:4px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><option value="">Tutti</option></select></th>
+                <th>Arrivo<br><input type="month" id="f-mese" oninput="renderPrenotazioni()" style="width:100%;margin-top:4px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-family:inherit"></th>
                 <th>Partenza</th>
                 <th>Notti</th>
                 <th>Totale</th>
-                <th>Fonte</th>
+                <th>Fonte<br><select id="f-fonte" onchange="renderPrenotazioni()" style="width:100%;margin-top:4px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><option value="">Tutti</option><option>Airbnb</option><option>Booking</option><option value="manuale">Manuale</option><option value="richiesta">Richieste</option></select></th>
                 <th>Azioni</th>
               </tr>
             </thead>
@@ -407,34 +429,49 @@
         <div id="an-mesi-filter" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
 
-      <!-- KPI cards -->
-      <div class="stats-grid" id="an-kpi"></div>
-
-      <!-- Grafici -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="card" style="padding:1.25rem">
-          <div style="font-size:13px;font-weight:600;margin-bottom:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Notti per mese</div>
-          <canvas id="chart-notti" height="180"></canvas>
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:1.5rem;align-items:start">
+        <!-- Sidebar metriche -->
+        <div class="card" style="padding:0.75rem;position:sticky;top:1rem">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;padding:6px 8px;font-weight:600">Metriche</div>
+          <div id="an-metric-nav"></div>
         </div>
-        <div class="card" style="padding:1.25rem">
-          <div style="font-size:13px;font-weight:600;margin-bottom:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Entrate per canale</div>
-          <canvas id="chart-canale" height="180"></canvas>
+
+        <!-- Contenuto -->
+        <div>
+          <!-- Grid card metriche con sparkline -->
+          <div id="an-cards-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"></div>
+
+          <!-- Confronto anno su anno -->
+          <div class="section-title">Confronto anno su anno (stesso periodo)</div>
+          <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
+            <canvas id="chart-yoy" height="90"></canvas>
+            <div id="an-yoy-summary" style="display:flex;gap:16px;margin-top:1rem;flex-wrap:wrap"></div>
+          </div>
+
+          <!-- Nazionalità ospiti -->
+          <div class="section-title">Nazionalità degli ospiti</div>
+          <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
+            <div style="display:grid;grid-template-columns:200px 1fr;gap:1.5rem;align-items:center">
+              <canvas id="chart-nazionalita" height="200"></canvas>
+              <div id="an-nazionalita-list"></div>
+            </div>
+          </div>
+
+          <!-- Confronto mese per mese -->
+          <div class="section-title">Guadagni per mese</div>
+          <div id="an-confronto-mese" class="stats-grid" style="margin-bottom:1.5rem"></div>
+
+          <!-- Tabella prenotazioni periodo -->
+          <div class="section-title">Prenotazioni nel periodo</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Ospite</th><th>Appartamento</th><th>Arrivo</th><th>Partenza</th><th>Notti</th><th>Guadagno</th><th>Fonte</th></tr>
+              </thead>
+              <tbody id="an-tbody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <!-- Confronto mese per mese -->
-      <div class="section-title">Guadagni per mese</div>
-      <div id="an-confronto-mese" class="stats-grid" style="margin-bottom:1.5rem"></div>
-
-      <!-- Tabella prenotazioni periodo -->
-      <div class="section-title">Prenotazioni nel periodo</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Ospite</th><th>Appartamento</th><th>Arrivo</th><th>Partenza</th><th>Notti</th><th>Guadagno</th><th>Fonte</th></tr>
-          </thead>
-          <tbody id="an-tbody"></tbody>
-        </table>
       </div>
     </div>
 
@@ -561,6 +598,7 @@
       <div class="form-row full"><div class="form-group"><label>Note</label><textarea id="pren-note" placeholder="Note..."></textarea></div></div>
     </div>
     <div class="modal-footer">
+      <button class="btn btn-danger" id="pren-delete-btn" onclick="deletePrenFromModal()" style="display:none;margin-right:auto">🗑️ Elimina</button>
       <button class="btn" onclick="closeModal('modal-pren')">Annulla</button>
       <button class="btn btn-primary" onclick="salvaPrenotazione()">Salva</button>
     </div>
@@ -741,13 +779,37 @@ async function loadDashboard() {
   const el = document.getElementById('prossimi-list');
   if (!s.prossimi.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📅</div>Nessun arrivo in programma</div>'; return; }
   el.innerHTML = s.prossimi.map(p => `
-    <div class="card" style="margin-bottom:8px">
+    <div class="card" style="margin-bottom:8px${p.stato === 'richiesta' ? ';border-left:3px solid var(--amber)' : ''}">
       <div class="card-header">
-        <div><div class="card-title">${p.ospite}</div><div class="card-sub">${p.apt} · Arrivo: ${formatDate(p.data_arrivo)} → Partenza: ${formatDate(p.data_partenza)}</div></div>
-        <span class="badge badge-blue">${p.fonte}</span>
+        <div>
+          <div class="card-title">${p.ospite}${p.stato === 'richiesta' ? ' <span style="font-size:11px;color:var(--amber);font-weight:600">● RICHIESTA</span>' : ''}</div>
+          <div class="card-sub">${p.apt} · Arrivo: ${formatDate(p.data_arrivo)} → Partenza: ${formatDate(p.data_partenza)}</div>
+          ${p.stato === 'richiesta' && p.note ? `<div class="card-sub" style="margin-top:4px;color:var(--muted);font-size:12px">📝 ${p.note}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${p.stato === 'richiesta' ? `<button class="btn btn-primary" style="font-size:12px;padding:4px 10px" onclick="confermaPren(${p.id})">✓ Conferma</button><button class="btn" style="font-size:12px;padding:4px 10px;color:var(--red)" onclick="cancellaPren(${p.id})">✗ Cancella</button>` : ''}
+          <span class="badge ${p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : p.stato === 'richiesta' ? 'badge-amber' : 'badge-gray'}">${p.stato === 'richiesta' ? 'Sito web' : p.fonte}</span>
+        </div>
       </div>
     </div>
   `).join('');
+}
+
+async function confermaPren(id) {
+  await api('/api/prenotazioni/' + id, 'PUT', { stato: 'confermata' });
+  toast('Prenotazione confermata!');
+  loadDashboard();
+  if (currentView === 'calendario') renderCalendario();
+  else renderPrenotazioni();
+}
+
+async function cancellaPren(id) {
+  if (!confirm('Cancellare questa richiesta?')) return;
+  await api('/api/prenotazioni/' + id, 'PUT', { stato: 'cancellata' });
+  toast('Richiesta cancellata');
+  loadDashboard();
+  if (currentView === 'calendario') renderCalendario();
+  else renderPrenotazioni();
 }
 
 async function pulisciNotAvailable() {
@@ -980,13 +1042,25 @@ async function leggiEmailAirbnb() {
 async function renderPrenotazioni() {
   prenotazioni = await api('/api/prenotazioni');
   appartamenti = await api('/api/appartamenti');
-  const q = document.getElementById('pren-search').value.toLowerCase();
-  const f = document.getElementById('pren-filter').value;
+
+  // Popola select appartamenti
+  const fApt = document.getElementById('f-apt');
+  const fAptVal = fApt.value;
+  fApt.innerHTML = '<option value="">Tutti</option>' + appartamenti.map(a => `<option value="${a.id}" ${a.id == fAptVal ? 'selected' : ''}>${a.nome}</option>`).join('');
+
+  const qOspite = (document.getElementById('f-ospite')?.value || document.getElementById('pren-search')?.value || '').toLowerCase();
+  const qApt = document.getElementById('f-apt')?.value || '';
+  const qMese = document.getElementById('f-mese')?.value || '';
+  const qFonte = document.getElementById('f-fonte')?.value || document.getElementById('pren-filter')?.value || '';
+
   const list = prenotazioni.filter(p => {
-    const match = !q || (p.ospite||'').toLowerCase().includes(q);
-    const sf = !f || p.fonte === f;
-    return match && sf;
-  });
+    if (!qOspite && !qApt && !qMese && !qFonte) return p.stato !== 'cancellata';
+    const matchOspite = !qOspite || (p.ospite||'').toLowerCase().includes(qOspite);
+    const matchApt = !qApt || p.appartamento_id == qApt;
+    const matchMese = !qMese || (p.data_arrivo||'').startsWith(qMese);
+    const matchFonte = !qFonte || (qFonte === 'richiesta' ? p.stato === 'richiesta' : p.fonte === qFonte);
+    return matchOspite && matchApt && matchMese && matchFonte && p.stato !== 'cancellata';
+  }).sort((a, b) => (a.data_arrivo || '') > (b.data_arrivo || '') ? 1 : -1);
   const tbody = document.getElementById('pren-tbody');
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione trovata</td></tr>'; return; }
   tbody.innerHTML = list.map(p => {
@@ -999,8 +1073,8 @@ async function renderPrenotazioni() {
       <td>${formatDate(p.data_arrivo)}</td>
       <td>${formatDate(p.data_partenza)}</td>
       <td style="text-align:center">${n}</td>
-      <td style="text-align:right;font-weight:500">€${totale}${isReale ? ' <span style="font-size:10px;color:var(--green)">✓reale</span>' : ''}</td>
-      <td><span class="badge ${p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : p.fonte === 'blocco' ? 'badge-gray' : 'badge-gray'}">${p.fonte === 'blocco' ? '🚫 Blocco' : p.fonte}</span></td>
+      <td style="text-align:right;font-weight:500">${p.fonte === 'blocco' ? '—' : `€${totale}${isReale ? ' <span style="font-size:10px;color:var(--green)">✓reale</span>' : ''}`}</td>
+      <td><span class="badge ${p.stato === 'richiesta' ? 'badge-amber' : p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : p.fonte === 'blocco' ? 'badge-gray' : 'badge-gray'}">${p.stato === 'richiesta' ? '⏳ Richiesta' : p.fonte === 'blocco' ? '🚫 Blocco' : p.fonte}</span></td>
       <td>
         <div style="display:flex;gap:4px">
           <button class="btn btn-sm" onclick="editPren(${p.id})" title="Modifica">✏️</button>
@@ -1037,6 +1111,7 @@ function openPrenModal() {
   appartamenti = appartamenti.length ? appartamenti : [];
   document.getElementById('pren-id').value = '';
   document.getElementById('pren-modal-title').textContent = 'Nuova prenotazione';
+  document.getElementById('pren-delete-btn').style.display = 'none';
   ['pren-ospite','pren-email','pren-tel','pren-arrivo','pren-partenza','pren-codice','pren-note'].forEach(id => document.getElementById(id).value = '');
   const sel = document.getElementById('pren-apt');
   sel.innerHTML = appartamenti.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
@@ -1047,6 +1122,7 @@ function editPren(id) {
   const p = prenotazioni.find(x => x.id === id);
   document.getElementById('pren-id').value = id;
   document.getElementById('pren-modal-title').textContent = 'Modifica prenotazione';
+  document.getElementById('pren-delete-btn').style.display = 'inline-flex';
   document.getElementById('pren-ospite').value = p.ospite || '';
   document.getElementById('pren-email').value = p.email_ospite || '';
   document.getElementById('pren-tel').value = p.telefono_ospite || '';
@@ -1089,6 +1165,17 @@ async function convertiBlocco(id) {
   await api('/api/prenotazioni/' + id, 'PUT', { ...p, fonte: 'manuale' });
   toast('Blocco convertito in prenotazione!');
   renderPrenotazioni();
+}
+
+async function deletePrenFromModal() {
+  const id = document.getElementById('pren-id').value;
+  if (!id) return;
+  if (!confirm('Eliminare questa prenotazione?')) return;
+  await api('/api/prenotazioni/' + id, 'DELETE');
+  closeModal('modal-pren');
+  toast('Prenotazione eliminata');
+  if (currentView === 'calendario') renderCalendario();
+  else renderPrenotazioni();
 }
 
 async function deletePren(id) {
@@ -1517,6 +1604,87 @@ function getMesiSelezionati() {
   return sel;
 }
 
+// Definizione di tutte le metriche disponibili (stile Hospitable)
+const METRICHE_DEF = [
+  { key: 'reddito', label: 'Reddito', icon: '💶', unit: '€', color: '#A32D2D' },
+  { key: 'occupazione', label: 'Percentuale di Occupazione', icon: '📊', unit: '%', color: '#1D9E75' },
+  { key: 'notti_occupate', label: 'Notti occupate', icon: '🛏️', unit: '', color: '#1D9E75' },
+  { key: 'prenotazioni_create', label: 'Prenotazioni create', icon: '📅', unit: '', color: '#185FA5' },
+  { key: 'tariffa_media', label: 'Tariffa media notturna', icon: '💰', unit: '€', color: '#BA7517' },
+  { key: 'prezzo_medio_pren', label: 'Prezzo medio della prenotazione', icon: '🧾', unit: '€', color: '#BA7517' },
+  { key: 'notti_prenotate', label: 'Notti prenotate', icon: '🌙', unit: '', color: '#185FA5' },
+  { key: 'durata_media', label: 'Durata media della prenotazione', icon: '⏱️', unit: 'notti', color: '#6b6b66' },
+  { key: 'clienti_ospitati', label: 'Clienti ospitati', icon: '👥', unit: '', color: '#1D9E75' },
+];
+
+let currentMetric = 'reddito';
+let analiticheCache = null;
+
+function notti(p) { return Math.max(0, Math.round((new Date(p.data_partenza) - new Date(p.data_arrivo)) / 86400000)); }
+
+function calcolaSerieGiornaliera(filtrate, mesiSel) {
+  // Genera serie giornaliera reddito + notti nel periodo selezionato per gli sparkline
+  if (!mesiSel.length) return { labels: [], reddito: [], notti: [], prenotazioni: [] };
+  const giorni = [];
+  mesiSel.sort().forEach(m => {
+    const [y, mo] = m.split('-').map(Number);
+    const inMese = new Date(y, mo, 0).getDate();
+    for (let d = 1; d <= inMese; d++) giorni.push(`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  });
+  const redditoMap = {}, nottiMap = {}, prenMap = {};
+  giorni.forEach(g => { redditoMap[g] = 0; nottiMap[g] = 0; prenMap[g] = 0; });
+  filtrate.forEach(p => {
+    const imp = (p.importo || notti(p) * 40) * 0.6;
+    if (redditoMap[p.data_arrivo] !== undefined) {
+      redditoMap[p.data_arrivo] += imp;
+      prenMap[p.data_arrivo] += 1;
+    }
+    // distribuisci notti sui giorni di soggiorno
+    let cur = new Date(p.data_arrivo);
+    const fine = new Date(p.data_partenza);
+    while (cur < fine) {
+      const ds = cur.toISOString().split('T')[0];
+      if (nottiMap[ds] !== undefined) nottiMap[ds] += 1;
+      cur.setDate(cur.getDate() + 1);
+    }
+  });
+  return {
+    labels: giorni,
+    reddito: giorni.map(g => redditoMap[g]),
+    notti: giorni.map(g => nottiMap[g]),
+    prenotazioni: giorni.map(g => prenMap[g])
+  };
+}
+
+function sparklineSVG(data, color) {
+  if (!data.length) return '';
+  const w = 280, h = 56, pad = 4;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = (max - min) || 1;
+  const stepX = (w - pad*2) / Math.max(1, data.length - 1);
+  const pts = data.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad*2);
+    return [x, y];
+  });
+  const path = pts.map((p,i) => (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = path + ` L${pts[pts.length-1][0].toFixed(1)},${h} L${pts[0][0].toFixed(1)},${h} Z`;
+  return `<svg class="metric-card-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${areaPath}" fill="${color}" opacity="0.08"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function deltaBadge(curr, prev) {
+  if (prev === 0 && curr === 0) return '<span class="metric-card-delta flat">0%</span>';
+  if (prev === 0) return '<span class="metric-card-delta up">↑ nuovo</span>';
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if (pct > 0) return `<span class="metric-card-delta up">↑ ${pct}%</span>`;
+  if (pct < 0) return `<span class="metric-card-delta down">↓ ${Math.abs(pct)}%</span>`;
+  return '<span class="metric-card-delta flat">0%</span>';
+}
+
 async function loadAnalitiche() {
   prenotazioni = await api('/api/prenotazioni');
   appartamenti = await api('/api/appartamenti');
@@ -1530,39 +1698,86 @@ async function loadAnalitiche() {
   const mesiSel = getMesiSelezionati();
 
   const filtrate = prenotazioni.filter(p => {
-    if (p.stato === 'cancellata') return false;
+    if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
     if (aptFiltro && p.appartamento_id != aptFiltro) return false;
     if (!p.data_arrivo) return false;
     const mesePren = p.data_arrivo.substring(0, 7);
     return mesiSel.length === 0 || mesiSel.includes(mesePren);
   });
 
-  function notti(p) {
-    return Math.max(0, Math.round((new Date(p.data_partenza) - new Date(p.data_arrivo)) / 86400000));
+  // Periodo precedente per calcolo delta (stesso numero di mesi, subito prima)
+  let mesiPrecedenti = [];
+  if (mesiSel.length) {
+    const primomese = mesiSel.slice().sort()[0];
+    const [y, m] = primomese.split('-').map(Number);
+    for (let i = mesiSel.length; i >= 1; i--) {
+      const dt = new Date(y, m - 1 - i, 1);
+      mesiPrecedenti.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+    }
+  }
+  const filtratePrec = prenotazioni.filter(p => {
+    if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
+    if (aptFiltro && p.appartamento_id != aptFiltro) return false;
+    if (!p.data_arrivo) return false;
+    return mesiPrecedenti.includes(p.data_arrivo.substring(0, 7));
+  });
+
+  const numApt = aptFiltro ? 1 : (appartamenti.length || 1);
+  const giorniPeriodo = mesiSel.length > 0 ? mesiSel.length * 30 : 30;
+
+  function calcolaMetriche(set) {
+    const totNotti = set.reduce((s, p) => s + notti(p), 0);
+    const totPrenotazioni = set.length;
+    const totGuadagniLordi = set.reduce((s, p) => s + (p.importo || notti(p) * 40), 0);
+    const totGuadagni = totGuadagniLordi * 0.6;
+    const occupazione = Math.round((totNotti / (giorniPeriodo * numApt)) * 100);
+    const tariffaMedia = totNotti > 0 ? totGuadagni / totNotti : 0;
+    const prezzoMedioPren = totPrenotazioni > 0 ? totGuadagni / totPrenotazioni : 0;
+    const durataMedia = totPrenotazioni > 0 ? totNotti / totPrenotazioni : 0;
+    return {
+      reddito: totGuadagni, occupazione, notti_occupate: totNotti,
+      prenotazioni_create: totPrenotazioni, tariffa_media: tariffaMedia,
+      prezzo_medio_pren: prezzoMedioPren, notti_prenotate: totNotti,
+      durata_media: durataMedia, clienti_ospitati: totPrenotazioni
+    };
   }
 
-  const totNotti = filtrate.reduce((s, p) => s + notti(p), 0);
-  const totPrenotazioni = filtrate.length;
-  const totGuadagniLordi = filtrate.reduce((s, p) => s + (p.importo || notti(p) * 40), 0);
-  const totGuadagni = totGuadagniLordi * 0.6;
-  const totAirbnb = filtrate.filter(p => p.fonte === 'Airbnb').reduce((s, p) => s + (p.importo || notti(p) * 40), 0) * 0.6;
-  const totBooking = filtrate.filter(p => p.fonte === 'Booking').reduce((s, p) => s + (p.importo || notti(p) * 40), 0) * 0.6;
-  const numApt = aptFiltro ? 1 : appartamenti.length || 1;
-  const giorniPeriodo = mesiSel.length > 0 ? mesiSel.length * 30 : 30;
-  const occupazione = Math.round((totNotti / (giorniPeriodo * numApt)) * 100);
+  const curr = calcolaMetriche(filtrate);
+  const prev = calcolaMetriche(filtratePrec);
+  const serie = calcolaSerieGiornaliera(filtrate, mesiSel);
 
-  document.getElementById('an-kpi').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Prenotazioni</div><div class="stat-value">${totPrenotazioni}</div></div>
-    <div class="stat-card"><div class="stat-label">Notti occupate</div><div class="stat-value green">${totNotti}</div></div>
-    <div class="stat-card"><div class="stat-label">Guadagni netti (60%)</div><div class="stat-value green">€${totGuadagni.toFixed(0)}</div></div>
-    <div class="stat-card"><div class="stat-label">Tasso occupazione</div><div class="stat-value ${occupazione > 70 ? 'green' : occupazione > 40 ? 'amber' : 'red'}">${occupazione}%</div></div>
-  `;
+  analiticheCache = { filtrate, curr, prev, serie, mesiSel };
 
-  // Grafico notti per mese
-  const mesiMap = {};
-  const guadagniMap = {};
-  const guadagniAirbnbMap = {};
-  const guadagniBookingMap = {};
+  // Sidebar nav metriche
+  document.getElementById('an-metric-nav').innerHTML = METRICHE_DEF.map(m => `
+    <button class="metric-nav-item ${m.key === currentMetric ? 'active' : ''}" onclick="selezionaMetrica('${m.key}')">${m.icon} ${m.label}</button>
+  `).join('');
+
+  // Card grid: reddito + occupazione sempre in evidenza, poi le altre
+  const cardsHtml = METRICHE_DEF.map(m => {
+    const val = curr[m.key];
+    const valPrev = prev[m.key];
+    const displayVal = m.unit === '€' ? `€${val.toFixed(0)}` : m.unit === '%' ? `${val}%` : m.unit === 'notti' ? val.toFixed(1) : Math.round(val);
+    const sparkData = m.key === 'reddito' ? serie.reddito : m.key.includes('nott') || m.key === 'occupazione' ? serie.notti : serie.prenotazioni;
+    return `<div class="metric-card" onclick="selezionaMetrica('${m.key}')">
+      <div class="metric-card-head">
+        <div class="metric-card-title">${m.icon} ${m.label}</div>
+        ${deltaBadge(val, valPrev)}
+      </div>
+      <div class="metric-card-value">${displayVal}</div>
+      ${sparklineSVG(sparkData, m.color)}
+    </div>`;
+  }).join('');
+  document.getElementById('an-cards-grid').innerHTML = cardsHtml;
+
+  // ─── Confronto anno su anno (stesso periodo, anni diversi) ─────────────────
+  await renderConfrontoAnnoSuAnno(aptFiltro, mesiSel);
+
+  // ─── Nazionalità ospiti ──────────────────────────────────────────────────────
+  await renderNazionalita(filtrate);
+
+  // Confronto mese per mese con split Airbnb/Booking
+  const mesiMap = {}, guadagniMap = {}, guadagniAirbnbMap = {}, guadagniBookingMap = {};
   filtrate.forEach(p => {
     const mese = p.data_arrivo.substring(0, 7);
     const imp = (p.importo || notti(p) * 40) * 0.6;
@@ -1572,33 +1787,6 @@ async function loadAnalitiche() {
     if (p.fonte === 'Booking') guadagniBookingMap[mese] = (guadagniBookingMap[mese] || 0) + imp;
   });
   const mesiLabel = Object.keys(mesiMap).sort();
-  const mesiNomiBrevi = mesiLabel.map(m => { const [y, mo] = m.split('-'); return MESI_BREVI[parseInt(mo)-1] + ' ' + y.slice(2); });
-
-  if (chartNotti) chartNotti.destroy();
-  chartNotti = new Chart(document.getElementById('chart-notti'), {
-    type: 'bar',
-    data: { labels: mesiNomiBrevi, datasets: [{ label: 'Notti', data: mesiLabel.map(m => mesiMap[m]), backgroundColor: '#1a1a18', borderRadius: 4 }] },
-    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1efe8' } }, x: { grid: { display: false } } } }
-  });
-
-  const airbnbN = filtrate.filter(p => p.fonte === 'Airbnb').reduce((s,p) => s + notti(p), 0);
-  const bookingN = filtrate.filter(p => p.fonte === 'Booking').reduce((s,p) => s + notti(p), 0);
-  if (chartCanale) chartCanale.destroy();
-  chartCanale = new Chart(document.getElementById('chart-canale'), {
-    type: 'doughnut',
-    data: { 
-      labels: ['Airbnb', 'Booking', 'Diretto'], 
-      datasets: [{ 
-        data: [totAirbnb.toFixed(0), totBooking.toFixed(0), Math.max(0, totGuadagni - totAirbnb - totBooking).toFixed(0)], 
-        backgroundColor: ['#FCEBEB','#E6F1FB','#f1efe8'], 
-        borderColor: ['#F7C1C1','#B8D4F5','#e5e3dd'], 
-        borderWidth: 1 
-      }] 
-    },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: ctx => ` €${ctx.raw}` } } }, cutout: '65%' }
-  });
-
-  // Confronto mese per mese con split Airbnb/Booking
   const confrontoHtml = mesiLabel.map(m => {
     const [y, mo] = m.split('-');
     const airbnbM = (guadagniAirbnbMap[m] || 0).toFixed(0);
@@ -1632,6 +1820,127 @@ async function loadAnalitiche() {
       <td style="text-align:right;font-weight:500;color:var(--green)">€${parseFloat(guadagno||0).toFixed(0)}</td>
       <td><span class="badge ${cls}">${p.fonte}</span></td>
     </tr>`;
+  }).join('');
+}
+
+function selezionaMetrica(key) {
+  currentMetric = key;
+  document.querySelectorAll('.metric-nav-item').forEach(b => b.classList.remove('active'));
+  loadAnalitiche();
+  // Scroll alla card corrispondente
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.metric-card');
+    const idx = METRICHE_DEF.findIndex(m => m.key === key);
+    if (cards[idx]) cards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50);
+}
+
+let chartYoY = null, chartNazionalita = null;
+
+async function renderConfrontoAnnoSuAnno(aptFiltro, mesiSel) {
+  const canvas = document.getElementById('chart-yoy');
+  const summaryEl = document.getElementById('an-yoy-summary');
+  if (!mesiSel.length) {
+    if (chartYoY) { chartYoY.destroy(); chartYoY = null; }
+    summaryEl.innerHTML = '<div style="color:var(--muted);font-size:13px">Seleziona almeno un mese per confrontare gli anni</div>';
+    return;
+  }
+
+  // Estrai i "numeri di mese" selezionati (es. [6] se hai selezionato solo giugno)
+  const numeriMese = [...new Set(mesiSel.map(m => parseInt(m.split('-')[1])))];
+  const anniDisponibili = [...new Set(prenotazioni.filter(p => p.data_arrivo).map(p => parseInt(p.data_arrivo.substring(0,4))))].sort();
+
+  const datiPerAnno = {};
+  anniDisponibili.forEach(anno => {
+    const set = prenotazioni.filter(p => {
+      if (p.stato === 'cancellata' || p.stato === 'richiesta') return false;
+      if (aptFiltro && p.appartamento_id != aptFiltro) return false;
+      if (!p.data_arrivo) return false;
+      const y = parseInt(p.data_arrivo.substring(0,4));
+      const m = parseInt(p.data_arrivo.substring(5,7));
+      return y === anno && numeriMese.includes(m);
+    });
+    const totGuadagni = set.reduce((s,p) => s + (p.importo || notti(p) * 40), 0) * 0.6;
+    const totNotti = set.reduce((s,p) => s + notti(p), 0);
+    datiPerAnno[anno] = { guadagni: totGuadagni, notti: totNotti, prenotazioni: set.length };
+  });
+
+  const labels = anniDisponibili.map(String);
+  if (chartYoY) chartYoY.destroy();
+  chartYoY = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Reddito netto', data: anniDisponibili.map(a => datiPerAnno[a].guadagni.toFixed(0)), backgroundColor: '#1D9E75', borderRadius: 4, maxBarThickness: 56 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` €${ctx.raw}` } } },
+      scales: { y: { beginAtZero: true, grid: { color: '#f1efe8' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  summaryEl.innerHTML = anniDisponibili.map((anno, i) => {
+    const d = datiPerAnno[anno];
+    const prec = i > 0 ? datiPerAnno[anniDisponibili[i-1]] : null;
+    const delta = prec ? deltaBadge(d.guadagni, prec.guadagni) : '';
+    return `<div class="stat-card" style="flex:1;min-width:140px">
+      <div class="stat-label">${anno}</div>
+      <div class="stat-value green">€${d.guadagni.toFixed(0)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${d.notti} notti · ${d.prenotazioni} pren.</div>
+      ${delta ? `<div style="margin-top:6px">${delta}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function renderNazionalita(filtrate) {
+  const canvas = document.getElementById('chart-nazionalita');
+  const listEl = document.getElementById('an-nazionalita-list');
+  if (!filtrate.length) {
+    if (chartNazionalita) { chartNazionalita.destroy(); chartNazionalita = null; }
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessuna prenotazione nel periodo</div>';
+    return;
+  }
+
+  // Recupera gli ospiti di tutte le prenotazioni filtrate
+  const ospitiPerNazione = {};
+  let totOspiti = 0;
+  for (const p of filtrate) {
+    try {
+      const ospiti = await api('/api/prenotazioni/' + p.id + '/ospiti');
+      ospiti.forEach(o => {
+        const nazione = o.stato_nascita_nome || o.nazionalita || 'Non specificata';
+        ospitiPerNazione[nazione] = (ospitiPerNazione[nazione] || 0) + 1;
+        totOspiti++;
+      });
+    } catch(e) { /* prenotazione senza ospiti registrati */ }
+  }
+
+  if (totOspiti === 0) {
+    if (chartNazionalita) { chartNazionalita.destroy(); chartNazionalita = null; }
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessun dato sulla nazionalità degli ospiti nel periodo (registra gli ospiti in Questura)</div>';
+    canvas.style.display = 'none';
+    return;
+  }
+  canvas.style.display = 'block';
+
+  const sorted = Object.entries(ospitiPerNazione).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const palette = ['#1D9E75','#185FA5','#BA7517','#A32D2D','#6b6b66','#8e7cc3','#45818e','#cc6699'];
+
+  if (chartNazionalita) chartNazionalita.destroy();
+  chartNazionalita = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels: sorted.map(s => s[0]), datasets: [{ data: sorted.map(s => s[1]), backgroundColor: palette, borderWidth: 1 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, cutout: '60%' }
+  });
+
+  listEl.innerHTML = sorted.map((s, i) => {
+    const pct = Math.round((s[1] / totOspiti) * 100);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${palette[i]};flex-shrink:0"></div>
+      <div style="flex:1">${s[0]}</div>
+      <div style="font-weight:600">${s[1]} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></div>
+    </div>`;
   }).join('');
 }
 
