@@ -8,12 +8,14 @@ const express       = require('express');
 const cors          = require('cors');
 const cookieParser  = require('cookie-parser');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 const { createChannexServices, ChannexClient } = require('./channex');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const SESSION_COOKIE = 'gc_session';
