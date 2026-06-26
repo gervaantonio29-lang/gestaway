@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accedi — Gestaway</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#c8102e;
+  --navy:#1a2e4a;
+  --white:#ffffff;
+  --light:#f8f8f8;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+}
+html,body{height:100%}
+body{
+  font-family:'Poppins',sans-serif;
+  background:var(--navy);
+  color:var(--white);
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+}
+
+/* sfumatura radiale come nell'hero */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:radial-gradient(ellipse at 60% 40%, rgba(200,16,46,0.18) 0%, transparent 65%);
+  pointer-events:none;
+}
+
+/* logo in alto */
+.top-bar{
+  position:relative;
+  z-index:10;
+  padding:28px 40px;
+}
+.top-bar a{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+}
+.brand-mark{
+  width:36px; height:36px;
+  background:var(--red);
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:16px; color:#fff;
+  flex-shrink:0;
+}
+.brand-name{
+  font-size:18px;
+  font-weight:800;
+  color:#fff;
+  letter-spacing:-0.3px;
+}
+
+/* contenitore centrale */
+.wrap{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:2rem;
+  position:relative;
+  z-index:10;
+}
+
+.card{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  padding:3rem 2.5rem;
+  width:100%;
+  max-width:420px;
+  backdrop-filter:blur(12px);
+}
+
+.card-tag{
+  display:inline-block;
+  background:rgba(200,16,46,0.2);
+  color:var(--red);
+  border:1px solid rgba(200,16,46,0.3);
+  padding:5px 14px;
+  border-radius:100px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:1.5rem;
+}
+
+.card h1{
+  font-size:1.75rem;
+  font-weight:800;
+  color:#fff;
+  line-height:1.15;
+  margin-bottom:0.5rem;
+}
+
+.card .sub{
+  color:rgba(255,255,255,0.5);
+  font-size:14px;
+  line-height:1.6;
+  margin-bottom:2rem;
+}
+
+.field{
+  margin-bottom:1.25rem;
+}
+.field label{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  color:rgba(255,255,255,0.55);
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:8px;
+}
+.field input{
+  width:100%;
+  padding:13px 16px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:10px;
+  color:#fff;
+  font-family:inherit;
+  font-size:15px;
+  outline:none;
+  transition:border-color 0.2s, background 0.2s;
+}
+.field input::placeholder{color:rgba(255,255,255,0.25)}
+.field input:focus{
+  border-color:rgba(200,16,46,0.6);
+  background:rgba(255,255,255,0.1);
+}
+
+.btn-login{
+  width:100%;
+  padding:14px;
+  background:var(--red);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  transition:opacity 0.2s, transform 0.15s;
+  margin-top:0.5rem;
+}
+.btn-login:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-login:active{transform:translateY(0)}
+.btn-login:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+.errore{
+  background:rgba(200,16,46,0.15);
+  border:1px solid rgba(200,16,46,0.35);
+  color:#ff8a9a;
+  font-size:13px;
+  padding:10px 14px;
+  border-radius:8px;
+  margin-bottom:1.25rem;
+  display:none;
+}
+.errore.visibile{display:block}
+
+/* footer minimale */
+.foot{
+  position:relative;
+  z-index:10;
+  text-align:center;
+  padding:1.5rem;
+  font-size:12px;
+  color:rgba(255,255,255,0.2);
+}
+.foot a{color:rgba(255,255,255,0.3);text-decoration:none}
+.foot a:hover{color:rgba(255,255,255,0.6)}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="/">
+    <div class="brand-mark">G</div>
+    <span class="brand-name">Gestaway</span>
+  </a>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="card-tag">Area riservata</div>
+    <h1>Accedi al<br>gestionale</h1>
+    <p class="sub">Inserisci la password per accedere al pannello di controllo.</p>
+
+    <div class="errore" id="errore">Password non corretta. Riprova.</div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        placeholder="••••••••••••"
+        autocomplete="current-password"
+      >
+    </div>
+
+    <button class="btn-login" id="btn-login">Accedi</button>
+  </div>
+</div>
+
+<div class="foot">
+  © 2026 Gestaway · <a href="/privacy.html">Privacy</a> · <a href="/termini.html">Termini</a>
+</div>
+
+<script>
+const input  = document.getElementById('password');
+const btn    = document.getElementById('btn-login');
+const errore = document.getElementById('errore');
+
+async function login() {
+  const password = input.value;
+  if (!password) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Accesso in corso…';
+  errore.classList.remove('visibile');
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const dati = await res.json();
+
+    if (res.ok && dati.ok) {
+      window.location.href = '/gestionale.html';
+    } else {
+      errore.textContent = dati.errore || 'Password non corretta. Riprova.';
+      errore.classList.add('visibile');
+      input.value = '';
+      input.focus();
+    }
+  } catch (err) {
+    errore.textContent = 'Errore di rete. Riprova tra poco.';
+    errore.classList.add('visibile');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
+  }
+}
+
+btn.onclick = login;
+input.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+input.focus();
+</script>
+
+</body>
+</html>
