@@ -717,8 +717,15 @@ app.post('/api/channex/poll-bookings', requireAuth, async (req, res) => {
 app.post('/api/channex/setup-webhook', requireAuth, async (req, res) => {
   const webhookUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/api/channex/webhook` : req.body.url;
   if (!webhookUrl) return res.status(400).json({ errore: 'Imposta BASE_URL.' });
+  const propertyId = req.body.property_id || null;
   try {
-    res.json(await channex.client.createWebhook({ url: webhookUrl, is_active: true, send_data: true, event_mask: 'booking' }));
+    res.json(await channex.client.createWebhook({ 
+      url: webhookUrl, 
+      is_active: true, 
+      send_data: true, 
+      event_mask: 'booking',
+      property_id: propertyId
+    }));
   } catch (err) { res.status(500).json({ errore: err.message }); }
 });
 
