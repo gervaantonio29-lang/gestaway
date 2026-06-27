@@ -39,7 +39,7 @@ class ChannexClient {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
+        'user-api-key': this.apiKey,
       },
     };
     if (body) options.body = JSON.stringify(body);
