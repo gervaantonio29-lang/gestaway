@@ -234,6 +234,50 @@ app.delete('/api/appartamenti/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── CHANNEX SYNC AUTOMATICO PER PRENOTAZIONI ──────────────────────────────────
+// Quando una prenotazione tocca l'appartamento collegato a Channex (id=1, Cà de Mari),
+// aggiorna automaticamente la disponibilità su Channex (solo le date cambiate).
+const CHANNEX_GESTAWAY_PROPERTY_ID = '00000000-0000-0000-0000-000000000001';
+const CHANNEX_SYNC_APPARTAMENTO_ID = 1; // Cà de Mari
+
+async function syncChannexAvailability(appartamentoId, dataArrivo, dataPartenza) {
+  if (Number(appartamentoId) !== CHANNEX_SYNC_APPARTAMENTO_ID) return;
+  if (!dataArrivo || !dataPartenza) return;
+  try {
+    const { data: roomMap } = await supabase
+      .from('channex_room_mappings')
+      .select('channex_room_type_id, disponibilita_default')
+      .eq('gestaway_property_id', CHANNEX_GESTAWAY_PROPERTY_ID)
+      .ilike('gestaway_room_nome', '%Cà de Mari%')
+      .single();
+    if (!roomMap) { console.warn('[Channex Sync] Nessun room mapping trovato per Cà de Mari'); return; }
+
+    // Conta quante prenotazioni attive ci sono in quel range per calcolare la disponibilità residua
+    const { data: prenAttive } = await supabase
+      .from('prenotazioni')
+      .select('id')
+      .eq('appartamento_id', CHANNEX_SYNC_APPARTAMENTO_ID)
+      .neq('stato', 'cancellata')
+      .lt('data_arrivo', dataPartenza)
+      .gt('data_partenza', dataArrivo);
+
+    const maxDisponibilita = roomMap.disponibilita_default ?? 10;
+    const occupate = (prenAttive || []).length;
+    const disponibilitaResidua = Math.max(0, maxDisponibilita - occupate);
+
+    await channex.sync.pushAvailabilityDelta(
+      CHANNEX_GESTAWAY_PROPERTY_ID,
+      'room-cademaricomo-2', // gestaway_room_id usato nel mapping
+      dataArrivo,
+      dataPartenza,
+      disponibilitaResidua
+    );
+    console.log(`[Channex Sync] Disponibilità aggiornata per Cà de Mari: ${disponibilitaResidua} (${dataArrivo} → ${dataPartenza})`);
+  } catch (err) {
+    console.error('[Channex Sync] Errore push availability:', err.message);
+  }
+}
+
 // ─── PRENOTAZIONI ─────────────────────────────────────────────────────────────
 app.get('/api/prenotazioni', requireAuth, async (req, res) => {
   const { data, error } = await supabase
@@ -249,19 +293,24 @@ app.post('/api/prenotazioni', requireAuth, async (req, res) => {
   const uid = 'manual_' + Date.now();
   const { data, error } = await supabase.from('prenotazioni').insert({ ...req.body, uid, stato: 'confermata', questura_inviata: 0 }).select().single();
   if (error) return res.status(500).json({ error: error.message });
+  syncChannexAvailability(data.appartamento_id, data.data_arrivo, data.data_partenza).catch(() => {});
   res.json({ id: data.id });
 });
 
 app.put('/api/prenotazioni/:id', requireAuth, async (req, res) => {
   const { error } = await supabase.from('prenotazioni').update(req.body).eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
+  const { data: pren } = await supabase.from('prenotazioni').select('appartamento_id, data_arrivo, data_partenza').eq('id', req.params.id).single();
+  if (pren) syncChannexAvailability(pren.appartamento_id, pren.data_arrivo, pren.data_partenza).catch(() => {});
   res.json({ ok: true });
 });
 
 app.delete('/api/prenotazioni/:id', requireAuth, async (req, res) => {
+  const { data: pren } = await supabase.from('prenotazioni').select('appartamento_id, data_arrivo, data_partenza').eq('id', req.params.id).single();
   await supabase.from('ospiti').delete().eq('prenotazione_id', req.params.id);
   const { error } = await supabase.from('prenotazioni').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
+  if (pren) syncChannexAvailability(pren.appartamento_id, pren.data_arrivo, pren.data_partenza).catch(() => {});
   res.json({ ok: true });
 });
 
