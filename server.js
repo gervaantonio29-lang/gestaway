@@ -248,7 +248,7 @@ async function syncChannexAvailability(appartamentoId, dataArrivo, dataPartenza)
       .from('channex_room_mappings')
       .select('channex_room_type_id, disponibilita_default')
       .eq('gestaway_property_id', CHANNEX_GESTAWAY_PROPERTY_ID)
-      .ilike('gestaway_room_nome', '%Cà de Mari%')
+      .ilike('gestaway_room_nome', '%Mari%')
       .single();
     if (!roomMap) { console.warn('[Channex Sync] Nessun room mapping trovato per Cà de Mari'); return; }
 
