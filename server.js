@@ -70,18 +70,22 @@ app.post('/api/channex/webhook', express.json(), async (req, res) => {
   try {
     const payload = req.body;
     const event = payload?.event || payload?.type;
-    await supabase.from('channex_log').insert({
-      tipo: 'webhook', dettagli: payload, esito: 'ok',
-      messaggio: `Webhook ricevuto: ${event}`,
-    }).catch(() => {});
+    try {
+      await supabase.from('channex_log').insert({
+        tipo: 'webhook', dettagli: payload, esito: 'ok',
+        messaggio: `Webhook ricevuto: ${event}`,
+      });
+    } catch (logErr) {
+      console.warn('[Webhook] Log error:', logErr.message);
+    }
     if (event === 'booking' || event === 'BookingRevision' || payload?.booking_id) {
       channex.bookings.poll().catch(err =>
         console.error('[Webhook] Errore poll:', err.message)
       );
     }
-    res.json({ ok: true });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ errore: err.message });
+    res.status(500).json({ success: false, errore: err.message });
   }
 });
 
