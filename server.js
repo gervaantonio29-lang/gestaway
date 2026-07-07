@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
+const ws = require('ws');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
 
 process.on('uncaughtException', (err) => { console.error('❌ uncaughtException:', err.message, err.stack); });
@@ -13,7 +14,11 @@ process.on('unhandledRejection', (reason) => { console.error('❌ unhandledRejec
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const supabase = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_KEY || '');
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_KEY || '',
+  { realtime: { transport: ws } }
+);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const crypto = require('crypto');
 const STATIC_TOKEN = crypto.createHash('sha256').update('gestionale-' + ADMIN_PASSWORD + '-token').digest('hex');
@@ -32,7 +37,7 @@ app.post('/api/login', (req, res) => {
 });
 app.post('/api/logout', (req, res) => res.json({ ok: true }));
 
-// STRIPE — prezzi aggiornati: Base €49, Professionale €89, Domus €59
+// ─── STRIPE — Base €39, Professionale €79, Domus €49 ─────────────────────────
 const PIANI = {
   base: process.env.STRIPE_PRICE_BASE,
   professionale: process.env.STRIPE_PRICE_PROFESSIONALE,
@@ -69,6 +74,7 @@ app.post('/api/checkout', async (req, res) => {
   }
 });
 
+// ─── STATIC ───────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/gestionale', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gestionale.html')));
 app.get('/checkin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkin.html')));
@@ -77,6 +83,7 @@ app.get('/grazie', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gr
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── CALENDARIO PUBBLICO ──────────────────────────────────────────────────────
 app.get('/api/disponibilita/:nomeAppartamento', async (req, res) => {
   const { data: apt } = await supabase.from('appartamenti').select('id, prezzo_base, iva_percent, markup_sito, rincaro_bassa, rincaro_media, rincaro_alta').ilike('nome', req.params.nomeAppartamento).single();
   if (!apt) return res.status(404).json({ error: 'Appartamento non trovato' });
@@ -97,6 +104,7 @@ app.get('/api/disponibilita/:nomeAppartamento', async (req, res) => {
   res.json({ prenotazioni: prens||[], prezzi });
 });
 
+// ─── RICHIESTA DAL SITO ───────────────────────────────────────────────────────
 app.post('/api/richiesta', async (req, res) => {
   const { nome, email, data_arrivo, data_partenza, ospiti, messaggio } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome mancante' });
@@ -106,6 +114,45 @@ app.post('/api/richiesta', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── CHECK-IN PUBBLICO ────────────────────────────────────────────────────────
+app.get('/api/checkin/cerca', async (req, res) => {
+  const { nome, data, orario } = req.query;
+  if (!nome || !data) return res.status(400).json({ error: 'Parametri mancanti' });
+  const { data: prens } = await supabase.from('prenotazioni').select('id, data_arrivo, data_partenza, ospite, appartamenti(nome)').eq('data_arrivo', data);
+  if (!prens || !prens.length) return res.status(404).json({ error: 'Non trovata' });
+  const nomeQuery = nome.toLowerCase().trim();
+  const pren = prens.find(p => { const ospite = (p.ospite||'').toLowerCase(); return ospite.includes(nomeQuery) || nomeQuery.split(' ').some(part => part.length > 2 && ospite.includes(part)); });
+  if (!pren) return res.status(404).json({ error: 'Non trovata' });
+  if (orario) await supabase.from('prenotazioni').update({ orario_arrivo: orario }).eq('id', pren.id);
+  res.json({ ...pren, appartamento_nome: pren.appartamenti?.nome || '—' });
+});
+app.get('/api/checkin/:id', async (req, res) => {
+  const { data, error } = await supabase.from('prenotazioni').select('id, data_arrivo, data_partenza, ospite, appartamenti(nome)').eq('id', req.params.id).single();
+  if (error || !data) return res.status(404).json({ error: 'Non trovata' });
+  res.json({ ...data, appartamento_nome: data.appartamenti?.nome || '—' });
+});
+app.get('/api/checkin/:id/ospiti', async (req, res) => {
+  const { data, error } = await supabase.from('ospiti').select('*').eq('prenotazione_id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+app.post('/api/checkin/:id/ospiti', async (req, res) => {
+  const { data, error } = await supabase.from('ospiti').insert({ ...req.body, prenotazione_id: parseInt(req.params.id) }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data.id });
+});
+app.delete('/api/checkin/ospiti/:id', async (req, res) => {
+  const { error } = await supabase.from('ospiti').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.post('/api/checkin/:id/conferma', async (req, res) => {
+  const { error } = await supabase.from('prenotazioni').update({ checkin_completato: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// ─── APPARTAMENTI ─────────────────────────────────────────────────────────────
 app.get('/api/appartamenti', requireAuth, async (req, res) => {
   const { data, error } = await supabase.from('appartamenti').select('*').order('id');
   if (error) return res.status(500).json({ error: error.message });
@@ -127,6 +174,7 @@ app.delete('/api/appartamenti/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── PRENOTAZIONI ─────────────────────────────────────────────────────────────
 app.get('/api/prenotazioni', requireAuth, async (req, res) => {
   const { data, error } = await supabase.from('prenotazioni').select('*, appartamenti(nome)').order('data_arrivo', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
@@ -150,6 +198,7 @@ app.delete('/api/prenotazioni/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── OSPITI ───────────────────────────────────────────────────────────────────
 app.get('/api/prenotazioni/:id/ospiti', requireAuth, async (req, res) => {
   const { data, error } = await supabase.from('ospiti').select('*').eq('prenotazione_id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
@@ -166,6 +215,7 @@ app.delete('/api/ospiti/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── IMPOSTAZIONI ─────────────────────────────────────────────────────────────
 app.get('/api/impostazioni', requireAuth, async (req, res) => {
   const { data } = await supabase.from('impostazioni').select('*');
   const cfg = {};
@@ -180,6 +230,7 @@ app.post('/api/impostazioni', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── STATS ────────────────────────────────────────────────────────────────────
 app.get('/api/stats', requireAuth, async (req, res) => {
   const oggi = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -194,6 +245,7 @@ app.get('/api/stats', requireAuth, async (req, res) => {
   res.json({ totApt: (apts||[]).length, totPren: (prens||[]).length, inCasa, questuraDa, prossimi });
 });
 
+// ─── SYNC ICAL ────────────────────────────────────────────────────────────────
 function fetchUrl(url, redirectCount=0) {
   return new Promise((resolve,reject) => {
     if (redirectCount>5) return reject(new Error('Troppi redirect'));
@@ -240,6 +292,7 @@ app.post('/api/sync/:id', requireAuth, async (req,res) => {
   res.json({ok:true,importati,dettagli});
 });
 
+// ─── PULIZIA ─────────────────────────────────────────────────────────────────
 app.post('/api/pulizia/not-available', requireAuth, async (req,res) => {
   const{data:prens}=await supabase.from('prenotazioni').select('id,ospite').eq('fonte','Airbnb');
   let rimossi=0;
@@ -247,6 +300,7 @@ app.post('/api/pulizia/not-available', requireAuth, async (req,res) => {
   res.json({ok:true,rimossi});
 });
 
+// ─── EMAIL ────────────────────────────────────────────────────────────────────
 async function getEmailConfig() {
   const{data}=await supabase.from('impostazioni').select('*').in('chiave',['email_user','email_pass']);
   const cfg={}; (data||[]).forEach(r=>cfg[r.chiave]=r.valore);
@@ -261,14 +315,12 @@ app.post('/api/email/test', requireAuth, async (req,res) => {
     res.json({ok:true});
   } catch(e){res.status(500).json({error:e.message});}
 });
-
 function parseDataEmail(g,m,a){
   const mesiEn={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
   const mesiIt={gen:1,feb:2,mar:3,apr:4,mag:5,giu:6,lug:7,ago:8,set:9,ott:10,nov:11,dic:12};
   const n=mesiEn[m.toLowerCase()]||mesiIt[m.toLowerCase()]||parseInt(m);
   return n?`${a}-${String(n).padStart(2,'0')}-${String(g).padStart(2,'0')}`:null;
 }
-
 app.post('/api/email/leggi-airbnb', requireAuth, async (req,res) => {
   try {
     const cfg=await getEmailConfig();
@@ -305,6 +357,7 @@ app.post('/api/email/leggi-airbnb', requireAuth, async (req,res) => {
   }catch(e){res.status(500).json({error:e.message});}
 });
 
+// ─── QUESTURA ─────────────────────────────────────────────────────────────────
 function buildAlloggiatiLines(ospiti,pren){
   const pad=(s,l)=>String(s||'').substring(0,l).padEnd(l,' ');
   const fmtData=d=>{if(!d)return'          ';if(d.includes('/'))return d.padEnd(10,' ');const p=d.split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'          ';};
@@ -326,9 +379,9 @@ function soapRequest(action,body){
     req.on('error',reject);req.write(xml);req.end();
   });
 }
-function xmlTag(xml,tag){const m=xml.match(new RegExp(`<${tag}[^>]*>([^<]*)<\/${tag}>`));return m?m[1].trim():null;}
-async function generaTokenAW(u,p,ws){
-  const body=`<all:GenerateToken><all:Utente>${u}</all:Utente><all:Password>${p}</all:Password><all:WsKey>${ws}</all:WsKey></all:GenerateToken>`;
+function xmlTag(xml,tag){const m=xml.match(new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`));return m?m[1].trim():null;}
+async function generaTokenAW(u,p,ws_key){
+  const body=`<all:GenerateToken><all:Utente>${u}</all:Utente><all:Password>${p}</all:Password><all:WsKey>${ws_key}</all:WsKey></all:GenerateToken>`;
   const r=await soapRequest('GenerateToken',body);
   const token=xmlTag(r,'token');
   if(!token)throw new Error('Token non ricevuto');
@@ -359,6 +412,7 @@ app.post('/api/questura/invia', requireAuth, async (req,res) => {
   res.json({ok:true,inviato_automaticamente:false,contenuto});
 });
 
+// ─── ROSS1000 ─────────────────────────────────────────────────────────────────
 function fmtD(d){const dt=new Date(d);return `${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}`;}
 app.get('/api/ross1000/genera-xml', requireAuth, async (req,res) => {
   try{
@@ -394,8 +448,10 @@ app.get('/api/ross1000/genera-xml', requireAuth, async (req,res) => {
   }catch(e){res.status(500).json({error:e.message});}
 });
 
+// ─── AVVIO ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`\n✅ Gestaway avviato su porta ${PORT}!\n`));
 
+// ─── JOB AUTOMATICI ───────────────────────────────────────────────────────────
 async function leggiEmailAuto(){
   try{
     const cfg=await getEmailConfig();if(!cfg)return;
