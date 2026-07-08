@@ -244,6 +244,7 @@
     <div class="nav-item" onclick="goTo('prenotazioni')"><span class="nav-icon">📅</span> Prenotazioni</div>
     <div class="nav-item" onclick="goTo('analitiche')"><span class="nav-icon">📈</span> Analitiche</div>
     <div class="nav-item" onclick="goTo('questura')"><span class="nav-icon">🚔</span> Questura</div>
+    <div class="nav-item" onclick="goTo('channex')"><span class="nav-icon">🔗</span> Channel Manager</div>
     <div class="nav-item" onclick="goTo('impostazioni')"><span class="nav-icon">⚙️</span> Impostazioni</div>
     <div class="nav-item" onclick="doLogout()" style="margin-top:auto"><span class="nav-icon">🚪</span> Esci</div>
   </nav>
@@ -255,6 +256,7 @@
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
         <button class="btn" onclick="syncTutti()">🔄 Sincronizza tutto</button>
+        <button class="btn btn-primary" onclick="syncChannex()">🔗 Full Sync Channex</button>
         <button class="btn" onclick="pulisciNotAvailable()">🧹 Rimuovi blocchi</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
@@ -345,6 +347,62 @@
             <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#374151;border:1px dashed #1f2937"></div> Blocco</div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- CHANNEL MANAGER -->
+    <div id="page-channex" class="page">
+      <div class="page-header">
+        <h1 class="page-title">🔗 Channel Manager</h1>
+        <button class="btn btn-primary" onclick="syncChannex()">🔄 Full Sync Channex</button>
+      </div>
+      <div class="alert alert-green" style="margin-bottom:1.5rem">✅ Integrazione Channex attiva — produzione</div>
+      <div class="section-title">Struttura collegata</div>
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Cà de Mari — Como</div>
+            <div class="card-sub">Property ID: d2588916-2697-4273-a48a-22f497b7bdac</div>
+          </div>
+          <span class="badge badge-green">✓ Connessa</span>
+        </div>
+      </div>
+      <div class="section-title">Camere mappate</div>
+      <div id="channex-rooms" class="card" style="margin-bottom:1.5rem;padding:1.25rem">
+        <div style="color:var(--muted);font-size:13px">Caricamento...</div>
+      </div>
+      <div class="section-title">Tariffe e Restrizioni</div>
+      <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Imposta prezzi e restrizioni per periodo e invia a Channex → Booking.com e Airbnb.</div>
+        <div class="form-row three">
+          <div class="form-group"><label>Data inizio</label><input type="date" id="ch-date-from"></div>
+          <div class="form-group"><label>Data fine</label><input type="date" id="ch-date-to"></div>
+          <div class="form-group"><label>Prezzo/notte (€)</label><input type="number" id="ch-rate" placeholder="100" min="0" step="1"></div>
+        </div>
+        <div class="form-row three">
+          <div class="form-group"><label>Soggiorno minimo (notti)</label><input type="number" id="ch-min-stay" placeholder="1" min="1" step="1"></div>
+          <div class="form-group"><label>Soggiorno massimo (notti)</label><input type="number" id="ch-max-stay" placeholder="30" min="1" step="1"></div>
+          <div class="form-group" style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ch-stop-sell"> Stop sell</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ch-cta"> Chiuso all'arrivo</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ch-ctd"> Chiuso alla partenza</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="inviaRestrizioniChannex()" style="margin-top:4px">📤 Invia a Channex</button>
+      </div>
+      <div class="section-title">Azioni</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="syncChannex()">🔄 Full Sync (500 giorni)</button>
+        <button class="btn" onclick="loadChannexBookings()">📥 Aggiorna prenotazioni</button>
+      </div>
+      <div class="section-title" style="margin-top:1.5rem">Ultime prenotazioni da Channex</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ospite</th><th>Arrivo</th><th>Partenza</th><th>Canale</th><th>Stato</th><th>Importo</th></tr></thead>
+          <tbody id="channex-bookings-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Caricamento...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -746,6 +804,7 @@ function goTo(page) {
   if (page === 'dashboard') loadDashboard();
   if (page === 'appartamenti') renderAppartamenti();
   if (page === 'prenotazioni') { setView('calendario'); }
+  if (page === 'channex') loadChannexPage();
   if (page === 'questura') renderQuestura();
   if (page === 'impostazioni') loadImpostazioni();
   if (page === 'analitiche') { buildAnnoFilter(); buildMesiFilter(); }
@@ -1954,6 +2013,88 @@ window.addEventListener('resize', () => {
   }
 });
 
+async function syncChannex() {
+  toast('Full Sync Channex in corso...');
+  const r = await api('/api/channex/full-sync/00000000-0000-0000-0000-000000000001', 'POST');
+  if (r.ok) toast('✅ Full Sync Channex completato!');
+  else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
+}
+async function loadChannexPage() {
+  await loadChannexRooms();
+  await loadChannexBookings();
+}
+async function loadChannexRooms() {
+  const el = document.getElementById('channex-rooms');
+  try {
+    const data = await api('/api/channex/mappings');
+    if (!data || !data.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessun mapping configurato</div>'; return; }
+    const mapping = data[0];
+    const rooms = mapping.channex_room_mappings || [];
+    const rates = mapping.channex_rate_mappings || [];
+    el.innerHTML = rooms.map(r => {
+      const ratesPerRoom = rates.filter(rt => rt.channex_room_type_id === r.channex_room_type_id);
+      return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><strong>${r.gestaway_room_nome}</strong><div style="font-size:12px;color:var(--muted);margin-top:2px">ID Channex: ${r.channex_room_type_id}</div></div>
+          <span class="badge badge-green">✓ Mappata</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Rate Plans:</div>
+        ${ratesPerRoom.map(rp => `<div style="font-size:12px;padding:4px 8px;background:var(--bg);border-radius:4px;margin-bottom:4px;display:flex;justify-content:space-between">
+          <span>${rp.channex_rate_plan_nome || rp.channex_rate_plan_id}</span>
+          <span style="color:var(--green);font-weight:600">€${rp.prezzo_default}/notte</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--red);font-size:13px">Errore: ' + e.message + '</div>';
+  }
+}
+async function loadChannexBookings() {
+  const tbody = document.getElementById('channex-bookings-tbody');
+  try {
+    const data = await api('/api/channex/prenotazioni?limit=20');
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione ricevuta da Channex</td></tr>'; return; }
+    tbody.innerHTML = data.map(p => `<tr>
+      <td><strong>${p.ospite_nome || '—'} ${p.ospite_cognome || ''}</strong></td>
+      <td>${formatDate(p.arrivo)}</td>
+      <td>${formatDate(p.partenza)}</td>
+      <td><span class="badge badge-blue">${p.ota_name || 'Channex'}</span></td>
+      <td><span class="badge ${p.stato === 'cancelled' ? 'badge-red' : p.stato === 'new' ? 'badge-green' : 'badge-amber'}">${p.stato}</span></td>
+      <td style="text-align:right">${p.importo ? '€' + parseFloat(p.importo).toFixed(2) : '—'}</td>
+    </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--red);padding:1rem">Errore: ' + e.message + '</td></tr>';
+  }
+}
+async function inviaRestrizioniChannex() {
+  const dateFrom = document.getElementById('ch-date-from').value;
+  const dateTo = document.getElementById('ch-date-to').value;
+  const rate = parseFloat(document.getElementById('ch-rate').value) || null;
+  const minStay = parseInt(document.getElementById('ch-min-stay').value) || 1;
+  const maxStay = parseInt(document.getElementById('ch-max-stay').value) || 30;
+  const stopSell = document.getElementById('ch-stop-sell').checked;
+  const cta = document.getElementById('ch-cta').checked;
+  const ctd = document.getElementById('ch-ctd').checked;
+  if (!dateFrom || !dateTo) { toast('Inserisci data inizio e fine', 'error'); return; }
+  if (dateTo <= dateFrom) { toast('La data fine deve essere successiva alla data inizio', 'error'); return; }
+  toast('Invio restrizioni a Channex...');
+  const values = [{
+    property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
+    rate_plan_id: 'fc31c11f-0347-4624-83e0-efd46f5112c2',
+    date_from: dateFrom,
+    date_to: dateTo,
+    ...(rate && { rate: Math.round(rate * 100) }),
+    min_stay_arrival: minStay,
+    min_stay_through: minStay,
+    max_stay: maxStay,
+    stop_sell: stopSell,
+    closed_to_arrival: cta,
+    closed_to_departure: ctd,
+  }];
+  const r = await api('/api/channex/push-ari/00000000-0000-0000-0000-000000000001', 'POST', { tipo: 'restrictions', values });
+  if (r.ok) toast('✅ Restrizioni inviate a Channex!');
+  else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
+}
 // Init
 calInit();
 checkAuth();
