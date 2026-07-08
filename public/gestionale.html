@@ -255,7 +255,6 @@
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
         <button class="btn" onclick="syncTutti()">🔄 Sincronizza tutto</button>
-        <button class="btn" onclick="syncChannex()">🔗 Sincronizza Channex</button>
         <button class="btn" onclick="pulisciNotAvailable()">🧹 Rimuovi blocchi</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
@@ -822,31 +821,12 @@ async function pulisciNotAvailable() {
 async function syncTutti() {
   const apts = await api('/api/appartamenti');
   let tot = 0;
-  const errori = [];
   for (const a of apts) {
     const r = await api('/api/sync/' + a.id, 'POST');
     tot += r.importati || 0;
-    (r.dettagli || []).forEach(d => {
-      if (d.stato === 'errore') errori.push(`${a.nome} — ${d.fonte}: ${d.motivo}`);
-      else if (d.stato === 'ok' && d.eventiNelFeed === 0) errori.push(`${a.nome} — ${d.fonte}: feed letto ma 0 eventi trovati`);
-    });
-  }
-  if (errori.length) {
-    alert('⚠️ Problemi durante la sincronizzazione:\n\n' + errori.join('\n'));
   }
   toast(`Sincronizzazione completata: ${tot} nuove prenotazioni importate`);
   loadDashboard();
-}
-
-async function syncChannex() {
-  toast('Sincronizzazione Channex in corso...');
-  try {
-    const r = await api('/api/channex/sync', 'POST');
-    toast(`Channex: ${r.importati} prenotazioni importate/aggiornate (${r.totaleRevisioni} revisioni lette)`);
-    loadDashboard();
-  } catch(e) {
-    alert('⚠️ Errore sincronizzazione Channex:\n\n' + e.message);
-  }
 }
 
 // ── Appartamenti ─────────────────────────────────────────────────────────────
@@ -1036,10 +1016,6 @@ async function deleteApt(id) {
 async function syncApt(id) {
   toast('Sincronizzazione in corso...');
   const r = await api('/api/sync/' + id, 'POST');
-  const errori = (r.dettagli || []).filter(d => d.stato === 'errore' || (d.stato === 'ok' && d.eventiNelFeed === 0));
-  if (errori.length) {
-    alert('⚠️ Problemi:\n\n' + errori.map(d => `${d.fonte}: ${d.motivo || 'feed letto ma 0 eventi trovati'}`).join('\n'));
-  }
   toast(`Importate ${r.importati} nuove prenotazioni`);
   if (currentPage === 'prenotazioni') renderPrenotazioni();
 }
