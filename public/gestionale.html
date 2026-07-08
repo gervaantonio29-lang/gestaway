@@ -256,6 +256,7 @@
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
         <button class="btn btn-primary" onclick="syncChannex()">🔗 Full Sync Channex</button>
+        <button class="btn btn-green" onclick="syncIcalManuale()">🔄 Importa iCal</button>
         <button class="btn" onclick="pulisciNotAvailable()">🧹 Rimuovi blocchi</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
@@ -1001,7 +1002,7 @@ function calcolaPrezzi() {
 function openAptModal() {
   document.getElementById('apt-id').value = '';
   document.getElementById('apt-modal-title').textContent = 'Nuovo appartamento';
-  ['apt-nome','apt-indirizzo','apt-ical-airbnb','apt-ical-booking','apt-switchbot','apt-email','apt-note','apt-prezzo-base','apt-iva','apt-markup-sito','apt-markup-airbnb','apt-markup-booking','apt-rincaro-bassa','apt-rincaro-media','apt-rincaro-alta'].forEach(id => document.getElementById(id).value = '');
+  ['apt-nome','apt-indirizzo','apt-switchbot','apt-email','apt-note','apt-prezzo-base','apt-iva','apt-markup-sito','apt-markup-airbnb','apt-markup-booking','apt-rincaro-bassa','apt-rincaro-media','apt-rincaro-alta'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('apt-prezzi-calcolati').style.display = 'none';
   document.getElementById('apt-prezzi-stagioni').style.display = 'none';
   document.getElementById('apt-iva').value = '10';
@@ -1017,8 +1018,7 @@ function editApt(id) {
   document.getElementById('apt-modal-title').textContent = 'Modifica appartamento';
   document.getElementById('apt-nome').value = a.nome || '';
   document.getElementById('apt-indirizzo').value = a.indirizzo || '';
-  document.getElementById('apt-ical-airbnb').value = a.ical_airbnb || '';
-  document.getElementById('apt-ical-booking').value = a.ical_booking || '';
+
   document.getElementById('apt-switchbot').value = a.switchbot_device_id || '';
   document.getElementById('apt-email').value = a.email_proprietario || '';
   document.getElementById('apt-note').value = a.note || '';
@@ -1040,8 +1040,7 @@ async function salvaAppartamento() {
   const data = {
     nome: document.getElementById('apt-nome').value,
     indirizzo: document.getElementById('apt-indirizzo').value,
-    ical_airbnb: document.getElementById('apt-ical-airbnb').value,
-    ical_booking: document.getElementById('apt-ical-booking').value,
+
     switchbot_device_id: document.getElementById('apt-switchbot').value,
     email_proprietario: document.getElementById('apt-email').value,
     note: document.getElementById('apt-note').value,
@@ -1574,7 +1573,7 @@ async function renderCalendario() {
           : '…';
         const leftPct = (colS / 7) * 100;
         const widthPct = (span / 7) * 100;
-        const topPx = 22 + row * 22; // 22px offset per etichetta appartamento
+        const topPx = row * 22; // posizione relativa al div eventi (già offset di 16px)
         const isStartInWeek = p.data_arrivo >= weekStart;
         const isEndInWeek = p.data_partenza <= weekEnd;
         const borderRadius = isStartInWeek && isEndInWeek ? '3px' : isStartInWeek ? '3px 0 0 3px' : isEndInWeek ? '0 3px 3px 0' : '0';
@@ -1588,11 +1587,11 @@ async function renderCalendario() {
       const rowCount = Math.max(0, Object.keys(usedRows).length > 0
         ? Math.max(...Object.keys(usedRows).map(k => parseInt(k.split('_')[1]))) + 1
         : 0);
-      const aptRowH = 24 + rowCount * 22 + 4;
+      const aptRowH = 18 + Math.max(rowCount, 1) * 22;
 
-      weeksHtml += `<div style="position:relative;border-bottom:2px solid var(--border);background:var(--surface);min-height:${aptRowH}px;overflow:hidden">
-        <div style="font-size:10px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;background:#6b6b66;display:block;padding:3px 8px;width:100%">${apt.nome}</div>
-        <div style="position:relative;height:${Math.max(rowCount * 22, 20)}px">${eventiHtml}</div>
+      weeksHtml += `<div style="border-bottom:1px solid var(--border);background:var(--surface);height:${aptRowH}px;position:relative;overflow:hidden">
+        <div style="font-size:9px;color:#fff;font-weight:700;text-transform:uppercase;background:#9ca3af;padding:1px 6px;line-height:16px;height:16px">${apt.nome}</div>
+        <div style="position:absolute;top:16px;left:0;right:0;height:${Math.max(rowCount,1)*22}px">${eventiHtml}</div>
       </div>`;
     });
 
@@ -2009,6 +2008,17 @@ window.addEventListener('resize', () => {
   }
 });
 
+async function syncIcalManuale() {
+  toast('Importazione iCal in corso...');
+  const apts = await api('/api/appartamenti');
+  let tot = 0;
+  for (const a of apts) {
+    const r = await api('/api/sync/' + a.id, 'POST');
+    tot += r.importati || 0;
+  }
+  toast(`Importate ${tot} prenotazioni da iCal`);
+  if (currentView === 'calendario') renderCalendario();
+}
 async function syncChannex() {
   toast('Full Sync Channex in corso...');
   const r = await api('/api/channex/full-sync/00000000-0000-0000-0000-000000000001', 'POST');
@@ -2099,7 +2109,7 @@ async function applicaRegolaWeekend() {
     const d = new Date(oggi);
     d.setDate(oggi.getDate() + i);
     const dow = d.getDay(); // 0=dom, 5=ven, 6=sab
-    if (dow === 5 || dow === 6) { // venerdì e sabato
+    if (dow === 0 || dow === 5 || dow === 6) { // domenica, venerdì e sabato
       const ds = d.toISOString().split('T')[0];
       values.push({
         property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
