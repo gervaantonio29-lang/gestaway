@@ -1578,7 +1578,7 @@ async function renderCalendario() {
           : '…';
         const leftPct = (colS / 7) * 100;
         const widthPct = (span / 7) * 100;
-        const topPx = row * 22;
+        const topPx = 22 + row * 22; // 22px offset per etichetta appartamento
         const isStartInWeek = p.data_arrivo >= weekStart;
         const isEndInWeek = p.data_partenza <= weekEnd;
         const borderRadius = isStartInWeek && isEndInWeek ? '3px' : isStartInWeek ? '3px 0 0 3px' : isEndInWeek ? '0 3px 3px 0' : '0';
@@ -1589,14 +1589,14 @@ async function renderCalendario() {
           onclick="editPren(${p.id})">${label}</div>`;
       });
 
-      const rowCount = Math.max(1, Object.keys(usedRows).length > 0
+      const rowCount = Math.max(0, Object.keys(usedRows).length > 0
         ? Math.max(...Object.keys(usedRows).map(k => parseInt(k.split('_')[1]))) + 1
-        : 1);
-      const aptRowH = rowCount * 22 + 8;
+        : 0);
+      const aptRowH = 24 + rowCount * 22 + 4;
 
-      weeksHtml += `<div style="position:relative;border-bottom:1px solid var(--border);background:var(--surface);min-height:${aptRowH}px">
-        <div style="position:absolute;top:2px;left:4px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;opacity:0.6">${apt.nome}</div>
-        <div style="position:relative;top:0;left:0;right:0;height:${aptRowH}px">${eventiHtml}</div>
+      weeksHtml += `<div style="position:relative;border-bottom:2px solid var(--border);background:var(--surface);min-height:${aptRowH}px">
+        <div style="font-size:10px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;background:var(--muted);display:inline-block;padding:2px 8px;border-radius:0 0 4px 0;position:absolute;top:0;left:0;z-index:1">${apt.nome}</div>
+        <div style="position:relative;margin-top:0;height:${rowCount * 22 + 4}px">${eventiHtml}</div>
       </div>`;
     });
 
