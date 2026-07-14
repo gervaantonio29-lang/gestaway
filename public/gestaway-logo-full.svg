@@ -1,6 +1,6 @@
-<svg width="580" height="220" viewBox="0 0 580 220" xmlns="http://www.w3.org/2000/svg">
-<rect x="0" y="0" width="580" height="220" fill="#c8102e"/>
-<circle cx="105" cy="105" r="88" fill="none" stroke="white" stroke-width="20" stroke-dasharray="430 123" stroke-dashoffset="196" stroke-linecap="round" transform="scale(-1,1) translate(-210,0)"/>
+<svg width="580" height="210" viewBox="0 0 580 210" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="580" height="210" fill="#c8102e"/>
+<path d="M 162,38 A 88,88 0 1,0 177,155" fill="none" stroke="white" stroke-width="20" stroke-linecap="round"/>
 <polyline points="73,85 105,51 137,85" fill="none" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 88 95 Q 94 91 100 95" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
 <path d="M 110 95 Q 116 91 122 95" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
@@ -8,11 +8,5 @@
 <rect x="87" y="118" width="46" height="13" rx="3" fill="white"/>
 <rect x="91" y="112" width="14" height="10" rx="3" fill="#c8102e"/>
 <rect x="126" y="129" width="6" height="6" rx="2" fill="white"/>
-<text x="150" y="122" font-family="Poppins, sans-serif" font-size="72" font-weight="800" textLength="410" lengthAdjust="spacing" fill="white">ESTΛWAY</text>
-<g>
-<rect x="195" y="138" width="123" height="9" fill="#009246"/>
-<rect x="318" y="138" width="124" height="9" fill="#ffffff"/>
-<rect x="442" y="138" width="123" height="9" fill="#ce2b37"/>
-</g>
-<text x="380" y="188" text-anchor="middle" font-family="Poppins, sans-serif" font-size="34" font-weight="800" letter-spacing="2" textLength="370" lengthAdjust="spacing" fill="white">SOFTWARE PER B&amp;B</text>
+<text x="150" y="136" font-family="Poppins, sans-serif" font-size="72" font-weight="800" textLength="410" lengthAdjust="spacing" fill="white">ESTΛWAY</text>
 </svg>
