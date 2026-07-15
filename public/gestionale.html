@@ -214,16 +214,21 @@
 
 <!-- Login Screen -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:320px;text-align:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:340px;text-align:center">
     <div style="margin-bottom:1rem"><img src="gestaway-logo.svg?v=3" alt="Gestaway" style="height:60px;width:auto"></div>
-    <div style="font-size:18px;font-weight:600;margin-bottom:0.25rem">Gestionale Appartamenti</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem">Como</div>
+    <div style="font-size:18px;font-weight:600;margin-bottom:0.25rem">Gestionale</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem">Accedi al tuo account</div>
+    <div class="form-group" style="margin-bottom:1rem;text-align:left">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="tua@email.com" autocomplete="username">
+    </div>
     <div class="form-group" style="margin-bottom:1rem;text-align:left">
       <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div id="login-error" style="color:var(--red);font-size:13px;margin-bottom:0.75rem;min-height:18px"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Accedi</button>
+    <div style="margin-top:1rem;font-size:12px;color:var(--muted)">Non hai un account? <a href="/attiva" style="color:var(--red);font-weight:600">Attiva ora</a></div>
   </div>
 </div>
 
@@ -245,6 +250,7 @@
     <div class="nav-item" onclick="goTo('analitiche')"><span class="nav-icon">📈</span> Analitiche</div>
     <div class="nav-item" onclick="goTo('questura')"><span class="nav-icon">🚔</span> Questura</div>
     <div class="nav-item" onclick="goTo('channex')"><span class="nav-icon">🔗</span> Channel Manager</div>
+    <div class="nav-item" onclick="goTo('messaggi')"><span class="nav-icon">💬</span> Messaggi<span id="msg-badge" style="display:none;background:var(--red);color:white;border-radius:100px;font-size:10px;padding:1px 6px;margin-left:auto">0</span></div>
     <div class="nav-item" onclick="goTo('impostazioni')"><span class="nav-icon">⚙️</span> Impostazioni</div>
     <div class="nav-item" onclick="doLogout()" style="margin-top:auto"><span class="nav-icon">🚪</span> Esci</div>
   </nav>
@@ -255,8 +261,7 @@
     <div id="page-dashboard" class="page active">
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
-        <button class="btn btn-primary" onclick="syncChannex()">🔗 Full Sync Channex</button>
-        <button class="btn btn-green" onclick="syncIcalManuale()">🔄 Importa iCal</button>
+        <button class="btn" onclick="syncTutti()">🔄 Sincronizza tutto</button>
         <button class="btn" onclick="pulisciNotAvailable()">🧹 Rimuovi blocchi</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
@@ -282,6 +287,7 @@
             <button class="view-btn active" id="btn-view-cal" onclick="setView('calendario')">📅 Calendario</button>
           </div>
           <button class="btn btn-primary" onclick="openPrenModal()">+ Aggiungi</button>
+          <button class="btn" onclick="impostaMinStayWeekend()">🔒 Min. 2 notti weekend</button>
         </div>
         <h1 class="page-title" style="font-size:16px;font-weight:500;color:var(--muted)">Prenotazioni</h1>
       </div>
@@ -298,7 +304,10 @@
           </select>
         </div>
         <div id="pren-totali-mese" class="stats-grid" style="margin-bottom:1rem"></div>
-
+        <div style="margin-bottom:0.75rem">
+          <button class="btn btn-green" onclick="leggiEmailAirbnb()">🔄 Sincronizza (forza)</button>
+          <span style="font-size:12px;color:var(--muted);margin-left:8px">Forza importazione nomi e importi dalle email</span>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -351,30 +360,34 @@
     <div id="page-channex" class="page">
       <div class="page-header">
         <h1 class="page-title">🔗 Channel Manager</h1>
-        <button class="btn btn-primary" onclick="syncChannex()">🔄 Full Sync Channex</button>
+        <button class="btn btn-primary" onclick="syncChannexFull()">🔄 Full Sync Channex</button>
       </div>
       <div class="alert alert-green" style="margin-bottom:1.5rem">✅ Integrazione Channex attiva — produzione</div>
       <div class="section-title">Struttura collegata</div>
       <div class="card" style="margin-bottom:1.5rem">
         <div class="card-header">
           <div>
-            <div class="card-title">Cà de Mari — Como</div>
+            <div class="card-title">Cà de' Mari — Como</div>
             <div class="card-sub">Property ID: d2588916-2697-4273-a48a-22f497b7bdac</div>
           </div>
           <span class="badge badge-green">✓ Connessa</span>
         </div>
       </div>
-      <div class="section-title">Camere mappate</div>
-      <div id="channex-rooms" class="card" style="margin-bottom:1.5rem;padding:1.25rem">
-        <div style="color:var(--muted);font-size:13px">Caricamento...</div>
-      </div>
       <div class="section-title">Tariffe e Restrizioni</div>
       <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
         <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Imposta prezzi e restrizioni per periodo e invia a Channex → Booking.com e Airbnb.</div>
+        <div class="form-row">
+          <div class="form-group"><label>Rate plan</label>
+            <select id="ch-rate-plan">
+              <option value="b3c6c2b0-f799-4950-9458-02e468a2499f">Base Airbnb</option>
+              <option value="fc31c11f-0347-4624-83e0-efd46f5112c2">Base Booking</option>
+            </select>
+          </div>
+        </div>
         <div class="form-row three">
           <div class="form-group"><label>Data inizio</label><input type="date" id="ch-date-from"></div>
           <div class="form-group"><label>Data fine</label><input type="date" id="ch-date-to"></div>
-          <div class="form-group"><label>Prezzo/notte (€)</label><input type="number" id="ch-rate" placeholder="100" min="0" step="1"></div>
+          <div class="form-group"><label>Prezzo/notte (€)</label><input type="number" id="ch-rate" placeholder="85" min="0" step="1"></div>
         </div>
         <div class="form-row three">
           <div class="form-group"><label>Soggiorno minimo (notti)</label><input type="number" id="ch-min-stay" placeholder="1" min="1" step="1"></div>
@@ -387,13 +400,26 @@
         </div>
         <button class="btn btn-primary" onclick="inviaRestrizioniChannex()" style="margin-top:4px">📤 Invia a Channex</button>
       </div>
-      <div class="section-title">Azioni</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="syncChannex()">🔄 Full Sync (500 giorni)</button>
-        <button class="btn" onclick="loadChannexBookings()">📥 Aggiorna prenotazioni</button>
-        <button class="btn btn-green" onclick="applicaRegolaWeekend()">📅 Min 2 notti weekend</button>
+      <div class="section-title">Minimo soggiorno per giorno della settimana (permanente)</div>
+      <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Imposta il minimo notti fisso per ogni giorno della settimana — si applica a tutte le date future, non solo a un range specifico.</div>
+        <div class="form-row" style="grid-template-columns:repeat(7,1fr);gap:8px">
+          <div class="form-group"><label>Lun</label><input type="number" id="ws-0" value="1" min="1" step="1"></div>
+          <div class="form-group"><label>Mar</label><input type="number" id="ws-1" value="1" min="1" step="1"></div>
+          <div class="form-group"><label>Mer</label><input type="number" id="ws-2" value="1" min="1" step="1"></div>
+          <div class="form-group"><label>Gio</label><input type="number" id="ws-3" value="1" min="1" step="1"></div>
+          <div class="form-group"><label>Ven</label><input type="number" id="ws-4" value="2" min="1" step="1"></div>
+          <div class="form-group"><label>Sab</label><input type="number" id="ws-5" value="2" min="1" step="1"></div>
+          <div class="form-group"><label>Dom</label><input type="number" id="ws-6" value="2" min="1" step="1"></div>
+        </div>
+        <button class="btn btn-primary" onclick="salvaMinStaySettimanale()" style="margin-top:8px">💾 Salva pattern settimanale</button>
       </div>
-      <div class="section-title" style="margin-top:1.5rem">Ultime prenotazioni da Channex</div>
+      <div class="section-title">Azioni rapide</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1.5rem">
+        <button class="btn btn-primary" onclick="syncChannexFull()">🔄 Full Sync (500 giorni)</button>
+        <button class="btn" onclick="loadChannexBookingsPage()">📥 Aggiorna prenotazioni</button>
+      </div>
+      <div class="section-title">Ultime prenotazioni da Channex</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Ospite</th><th>Arrivo</th><th>Partenza</th><th>Canale</th><th>Stato</th><th>Importo</th></tr></thead>
@@ -401,6 +427,16 @@
             <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Caricamento...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+    <!-- MESSAGGI -->
+    <div id="page-messaggi" class="page">
+      <div class="page-header">
+        <h1 class="page-title">💬 Messaggi</h1>
+        <button class="btn" onclick="loadThreads()">🔄 Ricarica</button>
+      </div>
+      <div id="msg-iframe-wrap" style="height:calc(100vh - 160px);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)">
+        <div style="text-align:center;padding:3rem;color:var(--muted);font-size:13px">Caricamento messaggi...</div>
       </div>
     </div>
 
@@ -417,6 +453,19 @@
     <div id="page-impostazioni" class="page">
       <div class="page-header"><h1 class="page-title">Impostazioni</h1></div>
 
+      <div class="section-title">🧾 Dati per Ricevute</div>
+      <div class="card" style="padding:1.25rem">
+        <div class="form-row">
+          <div class="form-group"><label>Ragione sociale / Nome struttura</label><input type="text" id="cfg-ricevuta-nome" placeholder="Cà de' Mari"></div>
+          <div class="form-group"><label>Telefono</label><input type="text" id="cfg-ricevuta-telefono" placeholder="+39 3345704912"></div>
+        </div>
+        <div class="form-row full"><div class="form-group"><label>Indirizzo</label><input type="text" id="cfg-ricevuta-indirizzo" placeholder="Via Cassino, 3, Faloppio, 22020 Italy"></div></div>
+        <div class="form-row">
+          <div class="form-group"><label>Email</label><input type="email" id="cfg-ricevuta-email" placeholder="tua@email.com"></div>
+          <div class="form-group"><label>Codice Fiscale (opzionale)</label><input type="text" id="cfg-ricevuta-cf" placeholder="CF"></div>
+        </div>
+        <div style="margin-top:8px"><button class="btn btn-primary" onclick="salvaRicevutaCfg()">Salva</button></div>
+      </div>
       <div class="section-title">Email (Gmail)</div>
       <div class="card" style="padding:1.25rem">
         <div class="form-row">
@@ -430,6 +479,19 @@
         <div class="alert alert-amber" style="margin-top:12px">Per usare Gmail devi creare una <strong>App Password</strong>: myaccount.google.com → Sicurezza → Verifica in due passaggi → Password per le app</div>
       </div>
 
+      <div class="section-title">💬 Messaggi Automatici</div>
+      <div class="card" style="padding:1.25rem;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-weight:500;font-size:14px">Messaggi automatici via Channex</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px">Conferma, pre-arrivo (3gg prima), check-out. Disabilita se usi già i messaggi automatici di Booking.com/Airbnb.</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="cfg-messaggi-auto" onchange="salvaMessaggiAuto()">
+            <span id="cfg-messaggi-auto-label" style="font-size:13px;color:var(--muted)">Disabilitati</span>
+          </label>
+        </div>
+      </div>
       <div class="section-title">SwitchBot</div>
       <div class="card" style="padding:1.25rem">
         <div class="form-row">
@@ -546,7 +608,8 @@
       <input type="hidden" id="apt-id">
       <div class="form-row full"><div class="form-group"><label>Nome</label><input type="text" id="apt-nome" placeholder="Es. Bilocale Navigli"></div></div>
       <div class="form-row full"><div class="form-group"><label>Indirizzo</label><input type="text" id="apt-indirizzo" placeholder="Via Roma 1, Como"></div></div>
-
+      <div class="form-row full"><div class="form-group"><label>Link iCal Airbnb</label><input type="text" id="apt-ical-airbnb" placeholder="https://www.airbnb.it/calendar/ical/..."></div></div>
+      <div class="form-row full"><div class="form-group"><label>Link iCal Booking.com</label><input type="text" id="apt-ical-booking" placeholder="https://ical.booking.com/..."></div></div>
       <div class="form-row">
         <div class="form-group"><label>Device ID SwitchBot</label><input type="text" id="apt-switchbot" placeholder="ID dispositivo locker"></div>
         <div class="form-group"><label>Email proprietario</label><input type="email" id="apt-email" placeholder="tua@email.com"></div>
@@ -654,6 +717,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" id="pren-delete-btn" onclick="deletePrenFromModal()" style="display:none;margin-right:auto">🗑️ Elimina</button>
+      <button class="btn" id="pren-ricevuta-btn" onclick="scaricaRicevuta(document.getElementById('pren-id').value)" style="display:none">🧾 Ricevuta</button>
       <button class="btn" onclick="closeModal('modal-pren')">Annulla</button>
       <button class="btn btn-primary" onclick="salvaPrenotazione()">Salva</button>
     </div>
@@ -741,35 +805,36 @@ let authToken = localStorage.getItem('auth_token') || '';
 
 
 function showLogin() {
-  authToken = ''; localStorage.removeItem('auth_token');
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('mobile-header').style.display = 'none';
-}
-
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  // Su mobile (≤768px) mostra l'header hamburger
-  if (window.innerWidth <= 768) {
-    document.getElementById('mobile-header').style.display = 'flex';
-  }
-}
-
-function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.querySelector('.mobile-header').style.display = 'none';
 }
 
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobile-header').style.display = 'flex';
+  }
+}
+
 async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
   const pwd = document.getElementById('login-password').value;
-  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwd }) });
-  if (r.ok) {
+  document.getElementById('login-error').textContent = '';
+  if (!email || !pwd) { document.getElementById('login-error').textContent = 'Inserisci email e password'; return; }
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pwd }) });
     const data = await r.json();
-    authToken = data.token; localStorage.setItem('auth_token', authToken);
-    showApp(); loadDashboard();
-  } else { document.getElementById('login-error').textContent = 'Password errata'; }
+    if (r.ok) {
+      authToken = data.token; localStorage.setItem('auth_token', authToken);
+      showApp(); loadDashboard();
+    } else {
+      document.getElementById('login-error').textContent = data.error || 'Credenziali non valide';
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Errore di connessione';
+  }
 }
 
 async function doLogout() { await api('/api/logout', 'POST'); showLogin(); }
@@ -802,6 +867,7 @@ function goTo(page) {
   if (page === 'appartamenti') renderAppartamenti();
   if (page === 'prenotazioni') { setView('calendario'); }
   if (page === 'channex') loadChannexPage();
+  if (page === 'messaggi') loadThreads();
   if (page === 'questura') renderQuestura();
   if (page === 'impostazioni') loadImpostazioni();
   if (page === 'analitiche') { buildAnnoFilter(); buildMesiFilter(); }
@@ -903,7 +969,7 @@ async function renderAppartamenti() {
       </div>
       <div class="card-actions">
         <button class="btn btn-sm" onclick="editApt(${a.id})">✏️ Modifica</button>
-
+        <button class="btn btn-sm btn-green" onclick="syncApt(${a.id})">🔄 Sincronizza iCal</button>
         <button class="btn btn-sm btn-danger" onclick="deleteApt(${a.id})">🗑️ Elimina</button>
       </div>
     </div>
@@ -1002,7 +1068,7 @@ function calcolaPrezzi() {
 function openAptModal() {
   document.getElementById('apt-id').value = '';
   document.getElementById('apt-modal-title').textContent = 'Nuovo appartamento';
-  ['apt-nome','apt-indirizzo','apt-switchbot','apt-email','apt-note','apt-prezzo-base','apt-iva','apt-markup-sito','apt-markup-airbnb','apt-markup-booking','apt-rincaro-bassa','apt-rincaro-media','apt-rincaro-alta'].forEach(id => document.getElementById(id).value = '');
+  ['apt-nome','apt-indirizzo','apt-ical-airbnb','apt-ical-booking','apt-switchbot','apt-email','apt-note','apt-prezzo-base','apt-iva','apt-markup-sito','apt-markup-airbnb','apt-markup-booking','apt-rincaro-bassa','apt-rincaro-media','apt-rincaro-alta'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('apt-prezzi-calcolati').style.display = 'none';
   document.getElementById('apt-prezzi-stagioni').style.display = 'none';
   document.getElementById('apt-iva').value = '10';
@@ -1018,7 +1084,8 @@ function editApt(id) {
   document.getElementById('apt-modal-title').textContent = 'Modifica appartamento';
   document.getElementById('apt-nome').value = a.nome || '';
   document.getElementById('apt-indirizzo').value = a.indirizzo || '';
-
+  document.getElementById('apt-ical-airbnb').value = a.ical_airbnb || '';
+  document.getElementById('apt-ical-booking').value = a.ical_booking || '';
   document.getElementById('apt-switchbot').value = a.switchbot_device_id || '';
   document.getElementById('apt-email').value = a.email_proprietario || '';
   document.getElementById('apt-note').value = a.note || '';
@@ -1040,7 +1107,8 @@ async function salvaAppartamento() {
   const data = {
     nome: document.getElementById('apt-nome').value,
     indirizzo: document.getElementById('apt-indirizzo').value,
-
+    ical_airbnb: document.getElementById('apt-ical-airbnb').value,
+    ical_booking: document.getElementById('apt-ical-booking').value,
     switchbot_device_id: document.getElementById('apt-switchbot').value,
     email_proprietario: document.getElementById('apt-email').value,
     note: document.getElementById('apt-note').value,
@@ -1132,7 +1200,7 @@ async function renderPrenotazioni() {
       <td>
         <div style="display:flex;gap:4px">
           <button class="btn btn-sm" onclick="editPren(${p.id})" title="Modifica">✏️</button>
-          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})" title="Questura">🚔</button>`}
+          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})" title="Questura">🚔</button><button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})" title="Ricevuta">🧾</button>`}
           <button class="btn btn-sm btn-danger" onclick="deletePren(${p.id})" title="Elimina">🗑️</button>
         </div>
       </td>
@@ -1166,6 +1234,7 @@ function openPrenModal() {
   document.getElementById('pren-id').value = '';
   document.getElementById('pren-modal-title').textContent = 'Nuova prenotazione';
   document.getElementById('pren-delete-btn').style.display = 'none';
+  document.getElementById('pren-ricevuta-btn').style.display = 'none';
   ['pren-ospite','pren-email','pren-tel','pren-arrivo','pren-partenza','pren-codice','pren-note'].forEach(id => document.getElementById(id).value = '');
   const sel = document.getElementById('pren-apt');
   sel.innerHTML = appartamenti.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
@@ -1177,6 +1246,7 @@ function editPren(id) {
   document.getElementById('pren-id').value = id;
   document.getElementById('pren-modal-title').textContent = 'Modifica prenotazione';
   document.getElementById('pren-delete-btn').style.display = 'inline-flex';
+  document.getElementById('pren-ricevuta-btn').style.display = 'inline-flex';
   document.getElementById('pren-ospite').value = p.ospite || '';
   document.getElementById('pren-email').value = p.email_ospite || '';
   document.getElementById('pren-tel').value = p.telefono_ospite || '';
@@ -1386,6 +1456,13 @@ async function inviaQuestura() {
 }
 
 // ── Impostazioni ──────────────────────────────────────────────────────────────
+async function salvaMessaggiAuto() {
+  const abilitati = document.getElementById('cfg-messaggi-auto').checked;
+  await api('/api/impostazioni', 'POST', { chiave: 'messaggi_auto_abilitati', valore: abilitati ? 'true' : 'false' });
+  document.getElementById('cfg-messaggi-auto-label').textContent = abilitati ? 'Abilitati ✅' : 'Disabilitati';
+  toast(abilitati ? 'Messaggi automatici abilitati' : 'Messaggi automatici disabilitati');
+}
+
 async function loadImpostazioni() {
   const cfg = await api('/api/impostazioni');
   document.getElementById('cfg-email-user').value = cfg.email_user || '';
@@ -1398,6 +1475,18 @@ async function loadImpostazioni() {
   document.getElementById('cfg-alloggiati-user').value = cfg.alloggiati_user || '';
   document.getElementById('cfg-alloggiati-pass').value = cfg.alloggiati_pass || '';
   document.getElementById('cfg-alloggiati-ws').value = cfg.alloggiati_ws || '';
+  document.getElementById('cfg-ricevuta-nome').value = cfg.ricevuta_ragione_sociale || "Cà de' Mari";
+  document.getElementById('cfg-ricevuta-telefono').value = cfg.ricevuta_telefono || '';
+  document.getElementById('cfg-ricevuta-indirizzo').value = cfg.ricevuta_indirizzo || '';
+  document.getElementById('cfg-ricevuta-email').value = cfg.ricevuta_email || '';
+  document.getElementById('cfg-ricevuta-cf').value = cfg.ricevuta_cf || '';
+  // Carica stato messaggi automatici
+  try {
+    const msgAuto = await api('/api/impostazioni/chiave/messaggi_auto_abilitati');
+    const abilitati = msgAuto?.valore === 'true';
+    document.getElementById('cfg-messaggi-auto').checked = abilitati;
+    document.getElementById('cfg-messaggi-auto-label').textContent = abilitati ? 'Abilitati ✅' : 'Disabilitati';
+  } catch(e) {}
 }
 
 async function salvaImpostazioni() {
@@ -1414,6 +1503,29 @@ async function salvaImpostazioni() {
   toast('Impostazioni salvate');
 }
 
+async function salvaRicevutaCfg() {
+  const data = {
+    ricevuta_ragione_sociale: document.getElementById('cfg-ricevuta-nome').value,
+    ricevuta_telefono: document.getElementById('cfg-ricevuta-telefono').value,
+    ricevuta_indirizzo: document.getElementById('cfg-ricevuta-indirizzo').value,
+    ricevuta_email: document.getElementById('cfg-ricevuta-email').value,
+    ricevuta_cf: document.getElementById('cfg-ricevuta-cf').value,
+  };
+  await api('/api/impostazioni', 'POST', data);
+  toast('Dati ricevuta salvati');
+}
+async function scaricaRicevuta(id) {
+  try {
+    const token = localStorage.getItem('auth_token') || '';
+    const r = await fetch('/api/prenotazioni/' + id + '/ricevuta', { headers: { 'x-auth-token': token } });
+    if (!r.ok) { const err = await r.json(); toast('Errore: ' + (err.error||'sconosciuto'), 'error'); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch(e) {
+    toast('Errore: ' + e.message, 'error');
+  }
+}
 async function testEmail() {
   toast('Invio email di test...');
   const r = await api('/api/email/test', 'POST');
@@ -1573,7 +1685,7 @@ async function renderCalendario() {
           : '…';
         const leftPct = (colS / 7) * 100;
         const widthPct = (span / 7) * 100;
-        const topPx = row * 22; // posizione relativa al div eventi (già offset di 16px)
+        const topPx = row * 22;
         const isStartInWeek = p.data_arrivo >= weekStart;
         const isEndInWeek = p.data_partenza <= weekEnd;
         const borderRadius = isStartInWeek && isEndInWeek ? '3px' : isStartInWeek ? '3px 0 0 3px' : isEndInWeek ? '0 3px 3px 0' : '0';
@@ -1584,14 +1696,14 @@ async function renderCalendario() {
           onclick="editPren(${p.id})">${label}</div>`;
       });
 
-      const rowCount = Math.max(0, Object.keys(usedRows).length > 0
+      const rowCount = Math.max(1, Object.keys(usedRows).length > 0
         ? Math.max(...Object.keys(usedRows).map(k => parseInt(k.split('_')[1]))) + 1
-        : 0);
-      const aptRowH = 18 + Math.max(rowCount, 1) * 22;
+        : 1);
+      const aptRowH = rowCount * 22 + 8;
 
-      weeksHtml += `<div style="border-bottom:1px solid var(--border);background:var(--surface);height:${aptRowH}px;position:relative;overflow:hidden">
-        <div style="font-size:9px;color:#fff;font-weight:700;text-transform:uppercase;background:#9ca3af;padding:1px 6px;line-height:16px;height:16px">${apt.nome}</div>
-        <div style="position:absolute;top:16px;left:0;right:0;height:${Math.max(rowCount,1)*22}px">${eventiHtml}</div>
+      weeksHtml += `<div style="position:relative;border-bottom:1px solid var(--border);background:var(--surface);min-height:${aptRowH}px">
+        <div style="position:absolute;top:2px;left:4px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;opacity:0.6">${apt.nome}</div>
+        <div style="position:relative;top:0;left:0;right:0;height:${aptRowH}px">${eventiHtml}</div>
       </div>`;
     });
 
@@ -1675,6 +1787,13 @@ let currentMetric = 'reddito';
 let analiticheCache = null;
 
 function notti(p) { return Math.max(0, Math.round((new Date(p.data_partenza) - new Date(p.data_arrivo)) / 86400000)); }
+function calcolaNettoReale(p) {
+  const lordo = p.importo || (notti(p) * 40);
+  const fonte = (p.fonte || '').toLowerCase();
+  if (fonte === 'airbnb') return lordo;
+  if (fonte === 'booking') return lordo * 0.552;
+  return lordo;
+}
 
 function calcolaSerieGiornaliera(filtrate, mesiSel) {
   // Genera serie giornaliera reddito + notti nel periodo selezionato per gli sparkline
@@ -2008,54 +2127,58 @@ window.addEventListener('resize', () => {
   }
 });
 
-async function syncIcalManuale() {
-  toast('Importazione iCal in corso...');
-  const apts = await api('/api/appartamenti');
-  let tot = 0;
-  for (const a of apts) {
-    const r = await api('/api/sync/' + a.id, 'POST');
-    tot += r.importati || 0;
+// ── Messaggi (iframe Channex) ─────────────────────────────────────────────────
+async function loadThreads() {
+  const wrap = document.getElementById('msg-iframe-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--muted);font-size:13px">Caricamento...</div>';
+  try {
+    const data = await api('/api/channex/iframe-token');
+    if (!data || !data.token) { wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--red);font-size:13px">Errore: token non ricevuto</div>'; return; }
+    const iframeSrc = `https://app.channex.io/auth/exchange?oauth_session_key=${data.token}&app_mode=headless&redirect_to=/messages&property_id=d2588916-2697-4273-a48a-22f497b7bdac`;
+    wrap.innerHTML = `<iframe src="${iframeSrc}" style="width:100%;height:100%;border:none" allowfullscreen></iframe>`;
+    // Aggiorna badge messaggi non letti
+    try {
+      const threads = await api('/api/messaggi/threads');
+      const unread = (threads || []).filter(t => t.last_message?.sender === 'guest').length;
+      const badge = document.getElementById('msg-badge');
+      if (unread > 0) { badge.textContent = unread; badge.style.display = 'inline'; }
+      else badge.style.display = 'none';
+    } catch(e) {}
+  } catch(e) {
+    wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--red);font-size:13px">Errore: ' + e.message + '</div>';
   }
-  toast(`Importate ${tot} prenotazioni da iCal`);
-  if (currentView === 'calendario') renderCalendario();
 }
-async function syncChannex() {
+
+async function impostaMinStayWeekend() {
+  if (!confirm('Impostare minimo 2 notti per arrivi di venerdì, sabato e domenica su Airbnb e Booking?')) return;
+  toast('Impostazione in corso...');
+  const pattern = [1,1,1,1,2,2,2]; // Lun,Mar,Mer,Gio=1 · Ven,Sab,Dom=2
+  const ratePlans = [
+    { id: 'b3c6c2b0-f799-4950-9458-02e468a2499f', nome: 'Airbnb' },
+    { id: 'fc31c11f-0347-4624-83e0-efd46f5112c2', nome: 'Booking' }
+  ];
+  let ok = 0, errori = [];
+  for (const rp of ratePlans) {
+    try {
+      const r = await api('/api/channex/rate-plans/' + rp.id + '/restrictions', 'PUT', { min_stay_arrival: pattern });
+      if (r.ok) ok++; else errori.push(rp.nome + ': ' + (r.error || 'errore'));
+    } catch(e) { errori.push(rp.nome + ': ' + e.message); }
+  }
+  if (errori.length) toast('⚠️ Errori: ' + errori.join(', '), 'error');
+  else toast('✅ Min. 2 notti weekend impostato su ' + ok + ' rate plan!');
+}
+
+// ── Channel Manager ─────────────────────────────────────────────────────────
+async function syncChannexFull() {
   toast('Full Sync Channex in corso...');
   const r = await api('/api/channex/full-sync/00000000-0000-0000-0000-000000000001', 'POST');
   if (r.ok) toast('✅ Full Sync Channex completato!');
   else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
 }
 async function loadChannexPage() {
-  await loadChannexRooms();
-  await loadChannexBookings();
+  await loadChannexBookingsPage();
 }
-async function loadChannexRooms() {
-  const el = document.getElementById('channex-rooms');
-  try {
-    const data = await api('/api/channex/mappings');
-    if (!data || !data.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessun mapping configurato</div>'; return; }
-    const mapping = data[0];
-    const rooms = mapping.channex_room_mappings || [];
-    const rates = mapping.channex_rate_mappings || [];
-    el.innerHTML = rooms.map(r => {
-      const ratesPerRoom = rates.filter(rt => rt.channex_room_type_id === r.channex_room_type_id);
-      return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div><strong>${r.gestaway_room_nome}</strong><div style="font-size:12px;color:var(--muted);margin-top:2px">ID Channex: ${r.channex_room_type_id}</div></div>
-          <span class="badge badge-green">✓ Mappata</span>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Rate Plans:</div>
-        ${ratesPerRoom.map(rp => `<div style="font-size:12px;padding:4px 8px;background:var(--bg);border-radius:4px;margin-bottom:4px;display:flex;justify-content:space-between">
-          <span>${rp.channex_rate_plan_nome || rp.channex_rate_plan_id}</span>
-          <span style="color:var(--green);font-weight:600">€${rp.prezzo_default}/notte</span>
-        </div>`).join('')}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    el.innerHTML = '<div style="color:var(--red);font-size:13px">Errore: ' + e.message + '</div>';
-  }
-}
-async function loadChannexBookings() {
+async function loadChannexBookingsPage() {
   const tbody = document.getElementById('channex-bookings-tbody');
   try {
     const data = await api('/api/channex/prenotazioni?limit=20');
@@ -2073,6 +2196,7 @@ async function loadChannexBookings() {
   }
 }
 async function inviaRestrizioniChannex() {
+  const ratePlan = document.getElementById('ch-rate-plan').value;
   const dateFrom = document.getElementById('ch-date-from').value;
   const dateTo = document.getElementById('ch-date-to').value;
   const rate = parseFloat(document.getElementById('ch-rate').value) || null;
@@ -2086,7 +2210,7 @@ async function inviaRestrizioniChannex() {
   toast('Invio restrizioni a Channex...');
   const values = [{
     property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
-    rate_plan_id: 'fc31c11f-0347-4624-83e0-efd46f5112c2',
+    rate_plan_id: ratePlan,
     date_from: dateFrom,
     date_to: dateTo,
     ...(rate && { rate: Math.round(rate * 100) }),
@@ -2101,33 +2225,50 @@ async function inviaRestrizioniChannex() {
   if (r.ok) toast('✅ Restrizioni inviate a Channex!');
   else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
 }
-async function applicaRegolaWeekend() {
-  toast('Applicazione regola weekend in corso...');
+async function salvaMinStaySettimanale() {
+  toast('Salvataggio pattern in corso...');
+  // Array Lun-Dom (indice 0=Lun...6=Dom) come richiesto da Channex
+  const pattern = [0,1,2,3,4,5,6].map(i => parseInt(document.getElementById('ws-' + i).value) || 1);
+  const ratePlans = ['b3c6c2b0-f799-4950-9458-02e468a2499f', 'fc31c11f-0347-4624-83e0-efd46f5112c2'];
+  // 1) Salva il pattern di default sul rate plan (vale per date oltre i 500gg già impostati)
+  let ok = 0, errori = [];
+  for (const rp of ratePlans) {
+    try {
+      const r = await api('/api/channex/rate-plans/' + rp + '/restrictions', 'PUT', {
+        min_stay_arrival: pattern,
+        min_stay_through: pattern
+      });
+      if (r.ok) ok++; else errori.push(r.error || 'errore sconosciuto');
+    } catch(e) { errori.push(e.message); }
+  }
+  // 2) Riscrivi le date dei prossimi 500 giorni rispettando il pattern (sovrascrive gli override già presenti)
+  toast('Aggiornamento date esistenti (può richiedere qualche minuto)...');
   const oggi = new Date();
   const values = [];
   for (let i = 0; i < 500; i++) {
-    const d = new Date(oggi);
-    d.setDate(oggi.getDate() + i);
-    const dow = d.getDay(); // 0=dom, 5=ven, 6=sab
-    if (dow === 0 || dow === 5 || dow === 6) { // domenica, venerdì e sabato
-      const ds = d.toISOString().split('T')[0];
+    const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + i);
+    const dow = (d.getDay() + 6) % 7; // converte 0=Dom in indice Lun=0...Dom=6
+    const minStay = pattern[dow];
+    const ds = dateToStr(d);
+    ratePlans.forEach(rp => {
       values.push({
         property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
-        rate_plan_id: 'fc31c11f-0347-4624-83e0-efd46f5112c2',
+        rate_plan_id: rp,
         date_from: ds,
         date_to: ds,
-        min_stay_arrival: 2,
-        min_stay_through: 2,
+        min_stay_arrival: minStay,
+        min_stay_through: minStay,
       });
-    }
+    });
   }
-  // Invia in blocchi da 50
   for (let i = 0; i < values.length; i += 50) {
     const chunk = values.slice(i, i + 50);
     await api('/api/channex/push-ari/00000000-0000-0000-0000-000000000001', 'POST', { tipo: 'restrictions', values: chunk });
   }
-  toast('✅ Regola weekend applicata — minimo 2 notti per ven/sab!');
+  if (errori.length) toast('⚠️ Errori: ' + errori.join(', '), 'error');
+  else toast('✅ Pattern settimanale applicato a tutte le date (oggi + 500 giorni)!');
 }
+
 // Init
 calInit();
 checkAuth();
