@@ -144,6 +144,48 @@ app.get('/api/sessione', requireAuth, async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
+// RESET PASSWORD
+// ────────────────────────────────────────────────────────────
+app.post('/api/password/richiedi-reset', async (req, res) => {
+  const { email } = req.body;
+  // Risposta sempre generica: non rivela se l'email esiste o no.
+  if (!email) return res.json({ ok: true });
+  try {
+    const { data: utente } = await supabase.from('utenti').select('id').eq('email', email).single();
+    if (utente) {
+      const token = generaToken();
+      const scadeIl = new Date(Date.now() + 60 * 60 * 1000); // 1 ora
+      await supabase.from('utenti').update({ reset_token: token, reset_scade_il: scadeIl.toISOString() }).eq('id', utente.id);
+      if (process.env.SYSTEM_EMAIL_USER && process.env.SYSTEM_EMAIL_PASS) {
+        const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
+        const link = `${process.env.BASE_URL || 'https://www.gestaway.com'}/reset-password?token=${token}`;
+        await t.sendMail({
+          from: process.env.SYSTEM_EMAIL_USER, to: email,
+          subject: 'Reimposta la tua password Gestaway',
+          text: `Hai richiesto di reimpostare la password del tuo account Gestaway.\n\nClicca qui per scegliere una nuova password (link valido 1 ora):\n${link}\n\nSe non hai richiesto tu il reset, ignora questa email.`,
+        });
+      }
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Reset Password] Errore:', e.message);
+    res.json({ ok: true }); // non rivelare errori interni al client
+  }
+});
+
+app.post('/api/password/reset', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Dati mancanti.' });
+  if (password.length < 8) return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri.' });
+  const { data: utente } = await supabase.from('utenti').select('id, reset_scade_il').eq('reset_token', token).single();
+  if (!utente) return res.status(400).json({ error: 'Link non valido o già usato.' });
+  if (new Date(utente.reset_scade_il) < new Date()) return res.status(400).json({ error: 'Link scaduto, richiedine uno nuovo.' });
+  const passwordHash = await bcrypt.hash(password, 10);
+  await supabase.from('utenti').update({ password_hash: passwordHash, reset_token: null, reset_scade_il: null }).eq('id', utente.id);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────────────────
 // STRIPE CHECKOUT
 // ────────────────────────────────────────────────────────────
 const PIANI = {
@@ -233,6 +275,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/gestionale', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gestionale.html')));
 app.get('/attiva', (req, res) => res.sendFile(path.join(__dirname, 'public', 'attiva.html')));
 app.get('/grazie', (req, res) => res.sendFile(path.join(__dirname, 'public', 'grazie.html')));
+app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'public', 'reset-password.html')));
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
