@@ -520,6 +520,46 @@ app.post('/api/questura/invia', async (req, res) => {
   res.json({ ok: true, inviato_automaticamente: false, contenuto });
 });
 
+// ─── ROSS1000 (statistiche turistiche Regione Lombardia) ────────
+function fmtDataRoss(d) { const dt = new Date(d); return `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`; }
+app.get('/api/ross1000/genera-xml', async (req, res) => {
+  try {
+    const { mese, anno } = req.query;
+    const meseN = parseInt(mese) || new Date().getMonth() + 1, annoN = parseInt(anno) || new Date().getFullYear();
+    const { data: cfgData } = await supabase.from('impostazioni').select('*').eq('struttura_id', req.strutturaId).eq('chiave', 'ross1000_codice');
+    const codice = cfgData?.[0]?.valore;
+    if (!codice) return res.status(400).json({ error: 'Codice Ross1000 non configurato' });
+    const dI = `${annoN}-${String(meseN).padStart(2, '0')}-01`;
+    const ultimoGiorno = new Date(annoN, meseN, 0).getDate();
+    const dF = `${annoN}-${String(meseN).padStart(2, '0')}-${String(ultimoGiorno).padStart(2, '0')}`;
+    const { data: prens } = await supabase.from('prenotazioni').select('*').eq('struttura_id', req.strutturaId).gte('data_arrivo', dI).lte('data_arrivo', dF).neq('stato', 'cancellata');
+    const ids = (prens || []).map(p => p.id);
+    const { data: ospiti } = ids.length ? await supabase.from('ospiti').select('*').eq('struttura_id', req.strutturaId).in('prenotazione_id', ids) : { data: [] };
+    let movimenti = '';
+    const byDate = {};
+    for (const p of (prens || [])) { if (!byDate[p.data_arrivo]) byDate[p.data_arrivo] = { p, ospiti: [] }; }
+    for (const o of (ospiti || [])) { const p = (prens || []).find(p => p.id === o.prenotazione_id); if (p && byDate[p.data_arrivo]) byDate[p.data_arrivo].ospiti.push(o); }
+    for (const [data, { p: pren, ospiti: osps }] of Object.entries(byDate).sort()) {
+      const df = fmtDataRoss(data); let arrivi = '', partenze = '';
+      for (const o of osps) {
+        const isCapo = osps.indexOf(o) === 0, id = `${pren.id}-${o.id}`.substring(0, 20);
+        const nascita = o.data_nascita ? fmtDataRoss(o.data_nascita) : '19800101';
+        const italiano = !o.stato_nascita_codice || o.stato_nascita_codice === '100000100';
+        const citt = italiano ? '100000100' : '100000200';
+        const canaleIndiretto = pren.fonte === 'Airbnb' || pren.fonte === 'Booking';
+        const canale = canaleIndiretto ? 'Indiretta web' : 'Diretta web';
+        arrivi += `<arrivo><idswh>${id}</idswh><tipoalloggiato>${isCapo ? '16' : '19'}</tipoalloggiato><idcapo>${isCapo ? '' : pren.id + '-' + osps[0].id}</idcapo><sesso>${o.sesso === '2' ? 'F' : 'M'}</sesso><cittadinanza>${citt}</cittadinanza><statoresidenza>${citt}</statoresidenza><luogoresidenza>${o.comune_nascita_codice || ''}</luogoresidenza><datanascita>${nascita}</datanascita><statonascita>${citt}</statonascita><comunenascita></comunenascita><tipoturismo>Escursionistico/Naturalistico</tipoturismo><mezzotrasporto>Auto</mezzotrasporto><canaleprenotazione>${canale}</canaleprenotazione><titolostudio></titolostudio><professione></professione><esenzioneimposta></esenzioneimposta></arrivo>`;
+        partenze += `<partenza><idswh>${id}</idswh><tipoalloggiato>${isCapo ? '16' : '19'}</tipoalloggiato><arrivo>${df}</arrivo></partenza>`;
+      }
+      movimenti += `<movimento><data>${df}</data><struttura><apertura>SI</apertura><camereoccupate>1</camereoccupate><cameredisponibili>1</cameredisponibili><lettidisponibili>2</lettidisponibili></struttura>${arrivi ? `<arrivi>${arrivi}</arrivi>` : ''}${partenze ? `<partenze>${partenze}</partenze>` : ''}</movimento>`;
+    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><movimenti><codice>${codice}</codice><prodotto>Gestaway</prodotto>${movimenti}</movimenti>`;
+    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Content-Disposition', `attachment; filename="ross1000_${annoN}${String(meseN).padStart(2, '0')}.xml"`);
+    res.send(xml);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── EMAIL (lettura Airbnb via IMAP) ────────────────────────────
 async function getEmailConfig(strutturaId) {
   const { data } = await supabase.from('impostazioni').select('*').eq('struttura_id', strutturaId).in('chiave', ['email_user', 'email_pass']);

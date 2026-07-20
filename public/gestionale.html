@@ -1057,7 +1057,9 @@ async function scaricaRoss1000() {
   const mese = document.getElementById('ross1000-mese').value;
   const anno = document.getElementById('ross1000-anno').value;
   try {
-    const res = await apiFetch(`/api/ross1000/genera-xml?mese=${mese}&anno=${anno}`);
+    const token = localStorage.getItem('auth_token') || '';
+    const res = await fetch(`/api/ross1000/genera-xml?mese=${mese}&anno=${anno}`, { headers: { 'x-auth-token': token } });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Errore generazione XML'); }
     const text = await res.text();
     const blob = new Blob([text], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
