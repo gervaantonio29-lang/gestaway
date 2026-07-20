@@ -6,7 +6,7 @@
 <title>Gestaway — Software per B&B</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon-192.png">
-<meta name="description" content="Gestaway è il software gestionale per B&B e affitti brevi. Prenotazioni, check-in digitale, questura automatica. Da €29/mese.">
+<meta name="description" content="Gestaway è il software gestionale per B&B e affitti brevi. Prenotazioni, check-in digitale, questura automatica. Da €49/mese.">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -21,7 +21,6 @@
 html{scroll-behavior:smooth}
 body{font-family:'Poppins',sans-serif;color:var(--navy);background:var(--white)}
 a{text-decoration:none;color:inherit}
-
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
 .nav-logo img{height:44px;width:auto;border-radius:6px}
@@ -30,7 +29,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .nav-links a:hover{color:white}
 .nav-cta{background:var(--red);color:white;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:700;transition:opacity 0.2s}
 .nav-cta:hover{opacity:0.85}
-
 /* HERO */
 .hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 5rem;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(200,16,46,0.15) 0%,transparent 70%)}
@@ -44,14 +42,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .btn-red:hover{opacity:0.9;transform:translateY(-1px)}
 .btn-outline{border:2px solid rgba(255,255,255,0.3);color:white;padding:15px 36px;border-radius:8px;font-size:15px;font-weight:600;transition:all 0.2s;display:inline-block}
 .btn-outline:hover{border-color:white}
-
 /* TRUST */
 .trust{background:white;border-bottom:1px solid var(--border);padding:1.5rem 2rem}
 .trust-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
 .trust-label{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
 .trust-items{display:flex;gap:2.5rem;flex-wrap:wrap;align-items:center}
 .trust-item{color:var(--navy);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-
 /* FEATURES */
 .features{background:var(--light);padding:6rem 2rem}
 .container{max-width:1080px;margin:0 auto}
@@ -64,7 +60,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .feat-icon{font-size:2rem;margin-bottom:1rem}
 .feat-title{font-weight:700;font-size:15px;margin-bottom:0.5rem;color:var(--navy)}
 .feat-desc{color:var(--muted);font-size:14px;line-height:1.7}
-
 /* PRICING */
 .pricing{background:white;padding:6rem 2rem}
 .pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:3rem}
@@ -88,7 +83,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .btn-plan-outline{border:2px solid var(--border);color:var(--navy)}
 .btn-plan-outline:hover{border-color:var(--red);color:var(--red)}
 .price-note{text-align:center;margin-top:2rem;color:var(--muted);font-size:13px}
-
 /* INTEGRATIONS */
 .integrations{background:var(--light);padding:6rem 2rem}
 .int-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:2.5rem}
@@ -97,14 +91,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .int-icon{font-size:2rem;margin-bottom:0.75rem}
 .int-name{font-weight:700;font-size:14px;color:var(--navy);margin-bottom:4px}
 .int-desc{font-size:12px;color:var(--muted);line-height:1.5}
-
 /* CTA */
 .cta{background:var(--red);padding:6rem 2rem;text-align:center}
 .cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:800;color:white;margin-bottom:1rem}
 .cta p{color:rgba(255,255,255,0.8);font-size:16px;line-height:1.7;margin-bottom:2.5rem}
 .btn-white{background:white;color:var(--red);padding:15px 36px;border-radius:8px;font-size:15px;font-weight:700;display:inline-block;transition:all 0.2s}
 .btn-white:hover{opacity:0.9;transform:translateY(-1px)}
-
 /* FOOTER */
 footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
 .footer-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
@@ -112,7 +104,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
 .footer-links{display:flex;gap:2rem}
 .footer-links a{color:rgba(255,255,255,0.4);font-size:13px;transition:color 0.2s}
 .footer-links a:hover{color:white}
-
 @media(max-width:900px){
   .features-grid,.int-grid{grid-template-columns:1fr 1fr}
   .pricing-grid{grid-template-columns:1fr 1fr;max-width:620px;margin-left:auto;margin-right:auto;margin-top:3rem}
@@ -126,7 +117,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
 </style>
 </head>
 <body>
-
 <nav>
   <div class="nav-logo">
     <a href="/"><img src="gestaway-logo-full.svg" alt="Gestaway"></a>
@@ -135,12 +125,10 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     <a href="#features">Funzioni</a>
     <a href="#pricing">Prezzi</a>
     <a href="#integrations">Integrazioni</a>
-    <a href="#reviews">Recensioni</a>
     <a href="#contact">Contatti</a>
   </div>
   <a href="#contact" class="nav-cta">Contattaci</a>
 </nav>
-
 <section class="hero">
   <div class="hero-content">
     <div class="hero-tag">Software per B&B · Affitti brevi</div>
@@ -152,7 +140,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
 <div class="trust">
   <div class="trust-inner">
     <span class="trust-label">Integrato con</span>
@@ -166,7 +153,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </div>
-
 <!-- Screenshots -->
 <section style="background:white;padding:5rem 2rem;border-bottom:1px solid var(--border)">
   <div class="container" style="max-width:1080px">
@@ -217,7 +203,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
 <section class="features" id="features">
   <div class="container">
     <div class="section-tag">Funzionalità</div>
@@ -233,17 +218,16 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
 <section class="pricing" id="pricing">
   <div class="container">
     <div class="section-tag">Prezzi</div>
     <h2 class="section-title">Semplice e trasparente</h2>
-    <p class="section-desc">Nessun costo di setup, nessun contratto annuale. Paghi mese per mese e disdici quando vuoi.</p>
+    <p class="section-desc">Nessun costo di setup, nessun contratto annuale. I piani Base e Professionale includono 14 giorni di prova gratuita; il piano Domus prevede addebito immediato.</p>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="price-name">Base</div>
-        <div class="price-amount">€29<span>/mese</span></div>
-        <div class="price-desc">Per chi gestisce un singolo appartamento o B&B.</div>
+        <div class="price-amount">€49<span>/mese</span></div>
+        <div class="price-desc">IVA inclusa. Per chi gestisce un singolo appartamento o B&B.</div>
         <ul class="price-features">
           <li>1 struttura</li>
           <li>Prenotazioni illimitate</li>
@@ -257,8 +241,8 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
       <div class="price-card featured">
         <div class="price-badge">Più scelto</div>
         <div class="price-name">Professionale</div>
-        <div class="price-amount">€59<span>/mese</span></div>
-        <div class="price-desc">Per chi gestisce più strutture.</div>
+        <div class="price-amount">€89<span>/mese</span></div>
+        <div class="price-desc">IVA inclusa. Per chi gestisce più strutture.</div>
         <ul class="price-features">
           <li>Fino a 3 strutture</li>
           <li>Prenotazioni illimitate</li>
@@ -267,14 +251,15 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
           <li>Portale del Turismo</li>
           <li>Analitiche per struttura</li>
           <li>Supporto prioritario</li>
+          <li>Formazione iniziale inclusa</li>
         </ul>
         <a href="/attiva" class="btn-plan btn-plan-red">Attiva ora</a>
       </div>
       <div class="price-card">
         <div class="price-badge" style="background:var(--navy)">Sito incluso</div>
         <div class="price-name">Domus</div>
-        <div class="price-amount">€35<span>/mese</span></div>
-        <div class="price-desc">Il gestionale con sito web e dominio inclusi.</div>
+        <div class="price-amount">€59<span>/mese</span></div>
+        <div class="price-desc">IVA inclusa · addebito immediato, senza prova gratuita. Il gestionale con sito web e dominio inclusi.</div>
         <ul class="price-features">
           <li>Sito web professionale incluso</li>
           <li>Dominio incluso</li>
@@ -282,6 +267,7 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
           <li>Check-in digitale</li>
           <li>Questura / Alloggiati Web</li>
           <li>Portale del Turismo</li>
+          <li>Formazione iniziale inclusa</li>
         </ul>
         <a href="/attiva" class="btn-plan btn-plan-outline">Attiva ora</a>
       </div>
@@ -293,7 +279,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
           <li>Strutture illimitate</li>
           <li>Tutte le funzionalità Professionale</li>
           <li>Integrazioni dedicate</li>
-          <li>Supporto dedicato</li>
         </ul>
         <a href="mailto:info@gestaway.com?subject=Richiesta%20piano%20Personalizzato%20Gestaway" class="btn-plan btn-plan-outline">Richiedi preventivo</a>
       </div>
@@ -301,7 +286,6 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     <p class="price-note">✓ Nessun costo di setup &nbsp;·&nbsp; ✓ 14 giorni di prova gratuita &nbsp;·&nbsp; ✓ Disdici quando vuoi</p>
   </div>
 </section>
-
 <section class="integrations" id="integrations">
   <div class="container">
     <div class="section-tag">Integrazioni</div>
@@ -318,37 +302,11 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     </div>
   </div>
 </section>
-
-<section style="background:var(--light);padding:5rem 2rem" id="reviews">
-  <div class="container" style="max-width:900px;text-align:center">
-    <div class="section-tag">Recensioni</div>
-    <h2 class="section-title">Chi usa Gestaway</h2>
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:1.5rem 0 3rem">
-      <span style="color:#00b67a;font-size:22px;letter-spacing:2px">★★★★★</span>
-      <a href="https://www.trustpilot.com/review/gestaway.com" target="_blank" rel="noopener" style="color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px">
-        Recensito su Trustpilot
-      </a>
-    </div>
-    <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:2.25rem;text-align:left;max-width:560px;margin:0 auto;box-shadow:0 8px 32px rgba(26,46,74,0.06)">
-      <div style="color:#00b67a;font-size:16px;margin-bottom:1rem">★★★★★</div>
-      <p style="color:var(--navy);font-size:15px;line-height:1.75;margin-bottom:1.25rem">"Da quando uso Gestaway gestisco le mie prenotazioni, il check-in e la questura senza più pensieri. Il calendario unico per tutti gli appartamenti mi fa risparmiare ore ogni settimana."</p>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:38px;height:38px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">CM</div>
-        <div>
-          <div style="font-weight:700;font-size:13px;color:var(--navy)">Cà de' Mari</div>
-          <div style="font-size:12px;color:var(--muted)">B&B · Faloppio, Como</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="cta" id="contact">
   <h2>Pronto a semplificare<br>la tua gestione?</h2>
   <p>Contattaci per maggiori informazioni o per attivare il tuo piano.</p>
   <a href="mailto:info@gestaway.com" class="btn-white">📧 Scrivici una mail</a>
 </section>
-
 <footer>
   <div class="footer-inner">
     <div class="footer-logo"><img src="gestaway-logo-full.svg" alt="Gestaway"></div>
@@ -360,6 +318,5 @@ footer{background:var(--navy);color:rgba(255,255,255,0.45);padding:3rem 2rem}
     <div style="font-size:13px">© 2026 Gestaway · P.IVA IT04249460132 · <a href="/privacy.html" style="color:rgba(255,255,255,0.4)">Privacy Policy</a> · <a href="/termini.html" style="color:rgba(255,255,255,0.4)">Termini e Condizioni</a></div>
   </div>
 </footer>
-
  </body>
 </html>
