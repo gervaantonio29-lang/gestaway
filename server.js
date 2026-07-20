@@ -236,18 +236,6 @@ app.get('/grazie', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gr
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
-// DEBUG TEMPORANEO — testa SYSTEM_EMAIL_USER/PASS senza passare da Stripe. Da rimuovere dopo l'uso.
-app.post('/api/debug/test-system-email', async (req, res) => {
-  try {
-    if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) {
-      return res.status(400).json({ error: 'SYSTEM_EMAIL_USER/PASS non configurate' });
-    }
-    const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
-    await t.sendMail({ from: process.env.SYSTEM_EMAIL_USER, to: req.body.to, subject: 'Test invio Gestaway', text: 'Se leggi questo, SYSTEM_EMAIL_USER/PASS funzionano.' });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
 const channex = createChannexServices(supabase);
 if (process.env.CHANNEX_API_KEY) {
