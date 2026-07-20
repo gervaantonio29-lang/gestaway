@@ -8,9 +8,6 @@ const CHANNEX_BASE = process.env.CHANNEX_ENV === 'production'
 const CHANNEX_API_KEY = process.env.CHANNEX_API_KEY;
 const RATE_LIMIT_PER_MINUTE = 18;
 const BOOKING_POLL_INTERVAL_MS = 15 * 60 * 1000;
-const ROOM_TO_APPARTAMENTO_ID = {
-  'room-cademaricomo-2': 1,
-};
 
 class ChannexClient {
   constructor(apiKey = CHANNEX_API_KEY, baseUrl = CHANNEX_BASE) {
@@ -64,6 +61,9 @@ class ChannexClient {
   put(path, body)  { return this._request('PUT', path, body); }
   delete(path)     { return this._request('DELETE', path); }
   async listProperties()          { return this.get('/properties'); }
+  async createProperty(attrs)     { return this.post('/properties', { property: attrs }); }
+  async createRoomType(attrs)     { return this.post('/room_types', { room_type: attrs }); }
+  async createRatePlan(attrs)     { return this.post('/rate_plans', { rate_plan: attrs }); }
   async listRoomTypes(propertyId) { return this.get(`/room_types?property_id=${propertyId}`); }
   async listRatePlans(propertyId) { return this.get(`/rate_plans?property_id=${propertyId}`); }
   async pushRestrictions(values)  { return this.post('/restrictions', { values }); }
@@ -82,7 +82,7 @@ class ChannexOutbox {
     this._minuteStart = Date.now();
   }
   async enqueue(tipo, payload, propertyId) {
-    const { error } = await this.supabase.from('channex_outbox').insert({ tipo, payload, property_id: propertyId, stato: 'pending', tentativi: 0 });
+    const { error } = await this.supabase.from('channex_outbox').insert({ tipo, payload, property_id: propertyId, struttura_id: propertyId, stato: 'pending', tentativi: 0 });
     if (error) console.error('[Outbox] Errore enqueue:', error.message);
   }
   async flush() {
@@ -168,15 +168,14 @@ class ChannexSync {
     const mapping = await this.getMapping(gPropertyId);
     if (!mapping) throw new Error(`Nessun mapping Channex per la struttura ${gPropertyId}`);
     const { data: camere } = await this.supabase.from('channex_room_mappings').select('*').eq('gestaway_property_id', gPropertyId);
-    const { data: tariffe } = await this.supabase.from('channex_rate_mappings').select('*').eq('gestaway_property_id', gPropertyId);
-    if (!camere?.length || !tariffe?.length) throw new Error('Nessuna camera o tariffa mappata');
+    if (!camere?.length) throw new Error('Nessuna camera mappata');
     const oggi = new Date();
     const fine = new Date(oggi); fine.setDate(fine.getDate() + 500);
     const dateFrom = formatDate(oggi), dateTo = formatDate(fine);
     const availValues = [];
     for (const c of (camere || [])) {
       const maxDisponibilita = c.disponibilita_default ?? 1;
-      const appartamentoId = ROOM_TO_APPARTAMENTO_ID[c.gestaway_room_id];
+      const appartamentoId = c.gestaway_room_id;
       if (appartamentoId) {
         const segmenti = await this.calcolaSegmentiDisponibilita(appartamentoId, maxDisponibilita, dateFrom, dateTo);
         for (const s of segmenti) availValues.push({ property_id: mapping.channex_property_id, room_type_id: c.channex_room_type_id, date_from: s.date_from, date_to: s.date_to, availability: s.availability });
@@ -184,9 +183,10 @@ class ChannexSync {
         availValues.push({ property_id: mapping.channex_property_id, room_type_id: c.channex_room_type_id, date_from: dateFrom, date_to: dateTo, availability: maxDisponibilita });
       }
     }
-    const rateValues = tariffe.map(t => ({ property_id: mapping.channex_property_id, rate_plan_id: t.channex_rate_plan_id, date_from: dateFrom, date_to: dateTo, rate: Math.round((t.prezzo_default ?? 100) * 100), min_stay_arrival: t.min_stay_default ?? 1, min_stay_through: t.min_stay_default ?? 1, max_stay: 30, closed_to_arrival: false, closed_to_departure: false, stop_sell: false }));
+    // NOTA: fullSync aggiorna SOLO la disponibilita' (occupato/libero), mai tariffe
+    // o restrizioni (min stay, prezzi). Quelle si gestiscono solo manualmente dal
+    // Channel Manager, per non sovrascrivere regole come il minimo notti weekend.
     await this.outbox.enqueue('availability', { values: availValues }, gPropertyId);
-    await this.outbox.enqueue('restrictions', { values: rateValues }, gPropertyId);
     await this.outbox.flush();
     await this.supabase.from('channex_mappings').update({ ultimo_full_sync: new Date().toISOString() }).eq('gestaway_property_id', gPropertyId);
     console.log(`[Sync] Full Sync completato per struttura ${gPropertyId}`);
@@ -209,10 +209,12 @@ class ChannexSync {
 }
 
 class ChannexBookings {
-  constructor(supabase) {
+  constructor(supabase, outbox) {
     this.supabase = supabase;
     this.client = new ChannexClient();
+    this.outbox = outbox;
     this._poller = null;
+    this._polling = false;
   }
   startPolling() {
     if (this._poller) return;
@@ -224,6 +226,8 @@ class ChannexBookings {
     if (this._poller) { clearInterval(this._poller); this._poller = null; }
   }
   async poll() {
+    if (this._polling) return;
+    this._polling = true;
     try {
       const feed = await this.client.getBookingRevisionsFeed();
       const revisions = feed?.data || [];
@@ -232,7 +236,20 @@ class ChannexBookings {
       for (const rev of revisions) await this._processRevision(rev);
     } catch (err) {
       console.error('[Bookings] Errore durante il polling:', err.message);
+    } finally {
+      this._polling = false;
     }
+  }
+  async _getAppartamentoId(gPropertyId, attrs) {
+    const roomTypeId = attrs.rooms?.[0]?.room_type_id;
+    if (roomTypeId) {
+      const { data: roomMap } = await this.supabase.from('channex_room_mappings').select('gestaway_room_id')
+        .eq('gestaway_property_id', gPropertyId).eq('channex_room_type_id', roomTypeId).single();
+      if (roomMap?.gestaway_room_id) return roomMap.gestaway_room_id;
+      console.warn(`[Bookings] Nessuna mappatura camera per room_type_id ${roomTypeId} (struttura ${gPropertyId}) — uso il primo appartamento disponibile`);
+    }
+    const { data: primoApt } = await this.supabase.from('appartamenti').select('id').eq('struttura_id', gPropertyId).order('created_at').limit(1).single();
+    return primoApt?.id || null;
   }
   async _processRevision(rev) {
     const attrs = rev.attributes || rev;
@@ -243,12 +260,21 @@ class ChannexBookings {
       const { data: mapping } = await this.supabase.from('channex_mappings').select('gestaway_property_id').eq('channex_property_id', attrs.property_id).single();
       const gPropertyId = mapping?.gestaway_property_id || null;
       try {
-        await this.supabase.from('channex_revision_log').insert({ booking_id: bookingId, revision_id: revisionId, status, property_id: attrs.property_id || null });
+        await this.supabase.from('channex_revision_log').insert({ booking_id: bookingId, revision_id: revisionId, status, property_id: attrs.property_id || null, struttura_id: gPropertyId });
       } catch(logErr) { console.warn('[Bookings] Revision log error:', logErr.message); }
+
+      if (!gPropertyId) {
+        console.error(`[Bookings] Nessuna struttura mappata per property Channex ${attrs.property_id} — booking ${bookingId} ignorato`);
+        // Ack comunque: la feed è condivisa fra tutte le strutture, altrimenti
+        // questa revision verrebbe riscaricata e rilogata ad ogni poll per sempre.
+        try { await this.client.acknowledgeBookingRevision(revisionId); }
+        catch (ackErr) { if (!ackErr.message.includes('404')) console.error(`[Bookings] Errore ack revision non mappata ${revisionId}:`, ackErr.message); }
+        return;
+      }
 
       const bookingData = {
         channex_booking_id: bookingId, channex_revision_id: revisionId,
-        channex_property_id: attrs.property_id, gestaway_property_id: gPropertyId,
+        channex_property_id: attrs.property_id, gestaway_property_id: gPropertyId, struttura_id: gPropertyId,
         stato: status, ota_name: attrs.ota_name, ota_reservation_code: attrs.ota_reservation_code,
         arrivo: attrs.arrival_date, partenza: attrs.departure_date,
         importo: attrs.amount, valuta: attrs.currency,
@@ -261,9 +287,11 @@ class ChannexBookings {
       // Salva SEMPRE in channex_prenotazioni (anche se cancelled) per avere le date
       await this.supabase.from('channex_prenotazioni').upsert(bookingData, { onConflict: 'channex_booking_id' });
 
+      const appartamentoId = await this._getAppartamentoId(gPropertyId, attrs);
+
       if (status === 'cancelled') {
-        // Cancella in prenotazioni
-        await this.supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('uid', 'channex_' + bookingId);
+        // Cancella in prenotazioni (scoped per struttura)
+        await this.supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('uid', 'channex_' + bookingId).eq('struttura_id', gPropertyId);
 
         // Recupera le date — prima da attrs, poi da channex_prenotazioni se attrs non le ha
         let arrivo = attrs.arrival_date;
@@ -274,13 +302,14 @@ class ChannexBookings {
           partenza = existing?.partenza;
         }
 
-        // Rimanda stop_sell se le date sono ancora occupate da altre prenotazioni
-        if (arrivo && partenza && gPropertyId) {
+        // Rimanda stop_sell se le date sono ancora occupate da altre prenotazioni della stessa struttura/appartamento
+        if (arrivo && partenza && appartamentoId) {
           try {
             const { data: prenAttive } = await this.supabase
               .from('prenotazioni')
               .select('id')
-              .eq('appartamento_id', 1)
+              .eq('struttura_id', gPropertyId)
+              .eq('appartamento_id', appartamentoId)
               .neq('stato', 'cancellata')
               .lt('data_arrivo', partenza)
               .gt('data_partenza', arrivo);
@@ -299,9 +328,8 @@ class ChannexBookings {
                   min_stay_arrival: 1, min_stay_through: 1, max_stay: 30,
                   closed_to_arrival: false, closed_to_departure: false,
                 }));
-                const outbox = new ChannexOutbox(this.supabase);
-                await outbox.enqueue('restrictions', { values }, gPropertyId);
-                await outbox.flush();
+                await this.outbox.enqueue('restrictions', { values }, gPropertyId);
+                await this.outbox.flush();
                 console.log(`[Bookings] ✅ Stop-sell rimandato per ${arrivo} → ${partenza} (cancellata ${bookingId})`);
               }
             } else {
@@ -318,6 +346,7 @@ class ChannexBookings {
         const fonte = ota.includes('booking') ? 'Booking' : ota.includes('airbnb') ? 'Airbnb' : 'Channex';
         await this.supabase.from('prenotazioni').upsert({
           uid: 'channex_' + bookingId,
+          struttura_id: gPropertyId,
           ospite: ospiteNome,
           email_ospite: attrs.customer?.mail || null,
           telefono_ospite: attrs.customer?.phone || null,
@@ -325,16 +354,19 @@ class ChannexBookings {
           data_partenza: attrs.departure_date,
           fonte, importo: attrs.amount || null,
           stato: 'confermata', questura_inviata: 0,
-          appartamento_id: 1,
+          appartamento_id: appartamentoId,
           note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
-        }, { onConflict: 'uid' });
-        // Invia messaggio automatico di conferma per nuove prenotazioni
+        }, { onConflict: 'struttura_id,uid' });
+        // Invia messaggio automatico di conferma per nuove prenotazioni, se la struttura ne ha configurato uno
         if (status === 'new') {
           try {
-            await this.client.post('/bookings/' + bookingId + '/messages', {
-              message: { message: 'Gentile ' + ospiteNome + ',\n\nGrazie per aver scelto Ca de Mari! La sua prenotazione e confermata.\n\nCi troviamo in Via Cassino 3, Faloppio (CO).\nCheck-in dalle 18:00 con codice numerico.\nParcheggio privato e WiFi inclusi.\n\nA presto!' }
-            });
-            console.log('[Messaggi] Conferma inviata per ' + bookingId);
+            const { data: msgCfg } = await this.supabase.from('impostazioni').select('valore').eq('struttura_id', gPropertyId).eq('chiave', 'messaggio_benvenuto').single();
+            if (msgCfg?.valore) {
+              await this.client.post('/bookings/' + bookingId + '/messages', {
+                message: { message: msgCfg.valore.replace('{ospite}', ospiteNome) }
+              });
+              console.log('[Messaggi] Conferma inviata per ' + bookingId);
+            }
           } catch(msgErr) {
             console.warn('[Messaggi] Errore conferma:', msgErr.message);
           }
@@ -360,7 +392,7 @@ function formatDate(d) { return d.toISOString().slice(0, 10); }
 function createChannexServices(supabase) {
   const outbox   = new ChannexOutbox(supabase);
   const sync     = new ChannexSync(supabase, outbox);
-  const bookings = new ChannexBookings(supabase);
+  const bookings = new ChannexBookings(supabase, outbox);
   const client   = new ChannexClient();
   return { outbox, sync, bookings, client };
 }
