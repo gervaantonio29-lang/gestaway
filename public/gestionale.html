@@ -362,7 +362,6 @@
         <h1 class="page-title">🔗 Channel Manager</h1>
         <button class="btn btn-primary" onclick="syncChannexFull()">🔄 Full Sync Channex</button>
       </div>
-      <div class="alert alert-green" style="margin-bottom:1.5rem">✅ Integrazione Channex attiva — produzione</div>
       <div class="section-title">Struttura collegata</div>
       <div class="card" style="margin-bottom:1.5rem">
         <div class="card-header" id="channex-connection-card">
@@ -370,6 +369,26 @@
             <div class="card-title">Caricamento...</div>
           </div>
         </div>
+      </div>
+      <div id="channex-connetti-form" class="card" style="padding:1.25rem;margin-bottom:1.5rem;display:none">
+        <div class="section-title" style="margin-top:0">Collega la struttura a Channex</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Crea la property su Channex per attivare la sincronizzazione con Booking.com e Airbnb.</div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome struttura</label><input type="text" id="cc-titolo" placeholder="Es. B&B Rossi"></div>
+          <div class="form-group"><label>Valuta</label><input type="text" id="cc-valuta" placeholder="EUR" value="EUR" maxlength="3"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Timezone</label><input type="text" id="cc-timezone" placeholder="Europe/Rome" value="Europe/Rome"></div>
+          <div class="form-group"><label>Paese (ISO 2 lettere)</label><input type="text" id="cc-paese" placeholder="IT" value="IT" maxlength="2"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Città</label><input type="text" id="cc-citta" placeholder="Como"></div>
+          <div class="form-group"><label>CAP</label><input type="text" id="cc-cap" placeholder="22100"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1"><label>Indirizzo</label><input type="text" id="cc-indirizzo" placeholder="Via Roma 1"></div>
+        </div>
+        <button class="btn btn-primary" onclick="connettiChannex()">🔗 Collega a Channex</button>
       </div>
       <div class="section-title">Tariffe e Restrizioni</div>
       <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
@@ -2176,17 +2195,43 @@ async function syncChannexFull() {
 }
 async function loadChannexConnectionCard() {
   const card = document.getElementById('channex-connection-card');
+  const form = document.getElementById('channex-connetti-form');
   try {
     const detail = await api('/api/channex/property-detail');
     if (!detail || detail.error || detail.errore) {
       card.innerHTML = '<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">Collega la tua struttura a Channex per attivare il Channel Manager.</div></div><span class="badge badge-amber">Non connessa</span>';
+      form.style.display = '';
       return;
     }
     const attrs = detail?.data?.attributes || {};
     card.innerHTML = `<div><div class="card-title">${attrs.title || 'Struttura collegata'}</div><div class="card-sub">Property ID: ${detail.data.id}</div></div><span class="badge badge-green">✓ Connessa</span>`;
+    form.style.display = 'none';
   } catch(e) {
     card.innerHTML = `<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">${e.message}</div></div><span class="badge badge-amber">Non connessa</span>`;
+    form.style.display = '';
   }
+}
+async function connettiChannex() {
+  const titolo = document.getElementById('cc-titolo').value.trim();
+  const valuta = document.getElementById('cc-valuta').value.trim().toUpperCase();
+  const timezone = document.getElementById('cc-timezone').value.trim();
+  const paese = document.getElementById('cc-paese').value.trim().toUpperCase();
+  const citta = document.getElementById('cc-citta').value.trim();
+  const cap = document.getElementById('cc-cap').value.trim();
+  const indirizzo = document.getElementById('cc-indirizzo').value.trim();
+  if (!titolo || !valuta || !timezone || !paese || !citta || !cap || !indirizzo) {
+    toast('Compila tutti i campi', 'error'); return;
+  }
+  toast('Collegamento a Channex in corso...');
+  try {
+    const r = await api('/api/channex/connetti', 'POST', { titolo, valuta, timezone, paese, citta, cap, indirizzo });
+    if (r.ok) {
+      toast('✅ Struttura collegata a Channex!');
+      await loadChannexPage();
+    } else {
+      toast('❌ Errore: ' + (r.error || 'sconosciuto'), 'error');
+    }
+  } catch(e) { toast('❌ Errore: ' + e.message, 'error'); }
 }
 async function loadRatePlansDropdown() {
   const sel = document.getElementById('ch-rate-plan');
