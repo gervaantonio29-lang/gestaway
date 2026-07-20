@@ -762,7 +762,7 @@ app.get('/api/channex/iframe-token', async (req, res) => {
     });
     const token = r?.data?.token;
     if (!token) return res.status(500).json({ error: 'Token non ricevuto' });
-    res.json({ token });
+    res.json({ token, property_id: propertyId });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

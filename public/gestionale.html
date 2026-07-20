@@ -365,12 +365,10 @@
       <div class="alert alert-green" style="margin-bottom:1.5rem">✅ Integrazione Channex attiva — produzione</div>
       <div class="section-title">Struttura collegata</div>
       <div class="card" style="margin-bottom:1.5rem">
-        <div class="card-header">
+        <div class="card-header" id="channex-connection-card">
           <div>
-            <div class="card-title">Cà de' Mari — Como</div>
-            <div class="card-sub">Property ID: d2588916-2697-4273-a48a-22f497b7bdac</div>
+            <div class="card-title">Caricamento...</div>
           </div>
-          <span class="badge badge-green">✓ Connessa</span>
         </div>
       </div>
       <div class="section-title">Tariffe e Restrizioni</div>
@@ -379,8 +377,7 @@
         <div class="form-row">
           <div class="form-group"><label>Rate plan</label>
             <select id="ch-rate-plan">
-              <option value="b3c6c2b0-f799-4950-9458-02e468a2499f">Base Airbnb</option>
-              <option value="fc31c11f-0347-4624-83e0-efd46f5112c2">Base Booking</option>
+              <option value="">Caricamento...</option>
             </select>
           </div>
         </div>
@@ -2134,7 +2131,7 @@ async function loadThreads() {
   try {
     const data = await api('/api/channex/iframe-token');
     if (!data || !data.token) { wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--red);font-size:13px">Errore: token non ricevuto</div>'; return; }
-    const iframeSrc = `https://app.channex.io/auth/exchange?oauth_session_key=${data.token}&app_mode=headless&redirect_to=/messages&property_id=d2588916-2697-4273-a48a-22f497b7bdac`;
+    const iframeSrc = `https://app.channex.io/auth/exchange?oauth_session_key=${data.token}&app_mode=headless&redirect_to=/messages&property_id=${data.property_id}`;
     wrap.innerHTML = `<iframe src="${iframeSrc}" style="width:100%;height:100%;border:none" allowfullscreen></iframe>`;
     // Aggiorna badge messaggi non letti
     try {
@@ -2149,14 +2146,16 @@ async function loadThreads() {
   }
 }
 
+async function getRatePlansDinamici() {
+  const r = await api('/api/channex/rate-plans');
+  return ((r && r.data) || []).map(p => ({ id: p.id, nome: p.attributes?.title || p.id }));
+}
 async function impostaMinStayWeekend() {
-  if (!confirm('Impostare minimo 2 notti per arrivi di venerdì, sabato e domenica su Airbnb e Booking?')) return;
+  if (!confirm('Impostare minimo 2 notti per arrivi di venerdì, sabato e domenica su tutti i rate plan collegati?')) return;
   toast('Impostazione in corso...');
   const pattern = [1,1,1,1,2,2,2]; // Lun,Mar,Mer,Gio=1 · Ven,Sab,Dom=2
-  const ratePlans = [
-    { id: 'b3c6c2b0-f799-4950-9458-02e468a2499f', nome: 'Airbnb' },
-    { id: 'fc31c11f-0347-4624-83e0-efd46f5112c2', nome: 'Booking' }
-  ];
+  const ratePlans = await getRatePlansDinamici();
+  if (!ratePlans.length) { toast('Nessun rate plan collegato a Channex.', 'error'); return; }
   let ok = 0, errori = [];
   for (const rp of ratePlans) {
     try {
@@ -2171,11 +2170,39 @@ async function impostaMinStayWeekend() {
 // ── Channel Manager ─────────────────────────────────────────────────────────
 async function syncChannexFull() {
   toast('Full Sync Channex in corso...');
-  const r = await api('/api/channex/full-sync/00000000-0000-0000-0000-000000000001', 'POST');
+  const r = await api('/api/channex/full-sync', 'POST');
   if (r.ok) toast('✅ Full Sync Channex completato!');
   else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
 }
+async function loadChannexConnectionCard() {
+  const card = document.getElementById('channex-connection-card');
+  try {
+    const detail = await api('/api/channex/property-detail');
+    if (!detail || detail.error || detail.errore) {
+      card.innerHTML = '<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">Collega la tua struttura a Channex per attivare il Channel Manager.</div></div><span class="badge badge-amber">Non connessa</span>';
+      return;
+    }
+    const attrs = detail?.data?.attributes || {};
+    card.innerHTML = `<div><div class="card-title">${attrs.title || 'Struttura collegata'}</div><div class="card-sub">Property ID: ${detail.data.id}</div></div><span class="badge badge-green">✓ Connessa</span>`;
+  } catch(e) {
+    card.innerHTML = `<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">${e.message}</div></div><span class="badge badge-amber">Non connessa</span>`;
+  }
+}
+async function loadRatePlansDropdown() {
+  const sel = document.getElementById('ch-rate-plan');
+  try {
+    const r = await api('/api/channex/rate-plans');
+    const plans = (r && r.data) || [];
+    sel.innerHTML = plans.length
+      ? plans.map(p => `<option value="${p.id}">${p.attributes?.title || p.id}</option>`).join('')
+      : '<option value="">Nessun rate plan disponibile</option>';
+  } catch(e) {
+    sel.innerHTML = '<option value="">Errore caricamento rate plan</option>';
+  }
+}
 async function loadChannexPage() {
+  await loadChannexConnectionCard();
+  await loadRatePlansDropdown();
   await loadChannexBookingsPage();
 }
 async function loadChannexBookingsPage() {
@@ -2209,7 +2236,6 @@ async function inviaRestrizioniChannex() {
   if (dateTo <= dateFrom) { toast('La data fine deve essere successiva alla data inizio', 'error'); return; }
   toast('Invio restrizioni a Channex...');
   const values = [{
-    property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
     rate_plan_id: ratePlan,
     date_from: dateFrom,
     date_to: dateTo,
@@ -2221,7 +2247,7 @@ async function inviaRestrizioniChannex() {
     closed_to_arrival: cta,
     closed_to_departure: ctd,
   }];
-  const r = await api('/api/channex/push-ari/00000000-0000-0000-0000-000000000001', 'POST', { tipo: 'restrictions', values });
+  const r = await api('/api/channex/push-ari', 'POST', { tipo: 'restrictions', values });
   if (r.ok) toast('✅ Restrizioni inviate a Channex!');
   else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
 }
@@ -2229,7 +2255,8 @@ async function salvaMinStaySettimanale() {
   toast('Salvataggio pattern in corso...');
   // Array Lun-Dom (indice 0=Lun...6=Dom) come richiesto da Channex
   const pattern = [0,1,2,3,4,5,6].map(i => parseInt(document.getElementById('ws-' + i).value) || 1);
-  const ratePlans = ['b3c6c2b0-f799-4950-9458-02e468a2499f', 'fc31c11f-0347-4624-83e0-efd46f5112c2'];
+  const ratePlans = (await getRatePlansDinamici()).map(rp => rp.id);
+  if (!ratePlans.length) { toast('Nessun rate plan collegato a Channex.', 'error'); return; }
   // 1) Salva il pattern di default sul rate plan (vale per date oltre i 500gg già impostati)
   let ok = 0, errori = [];
   for (const rp of ratePlans) {
@@ -2252,7 +2279,6 @@ async function salvaMinStaySettimanale() {
     const ds = dateToStr(d);
     ratePlans.forEach(rp => {
       values.push({
-        property_id: 'd2588916-2697-4273-a48a-22f497b7bdac',
         rate_plan_id: rp,
         date_from: ds,
         date_to: ds,
@@ -2263,7 +2289,7 @@ async function salvaMinStaySettimanale() {
   }
   for (let i = 0; i < values.length; i += 50) {
     const chunk = values.slice(i, i + 50);
-    await api('/api/channex/push-ari/00000000-0000-0000-0000-000000000001', 'POST', { tipo: 'restrictions', values: chunk });
+    await api('/api/channex/push-ari', 'POST', { tipo: 'restrictions', values: chunk });
   }
   if (errori.length) toast('⚠️ Errori: ' + errori.join(', '), 'error');
   else toast('✅ Pattern settimanale applicato a tutte le date (oggi + 500 giorni)!');
