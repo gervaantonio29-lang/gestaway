@@ -236,18 +236,6 @@ app.get('/grazie', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gr
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
-// DEBUG TEMPORANEO — nessun dato segreto, solo per capire quale env sta usando il container.
-// Da rimuovere subito dopo la diagnosi.
-app.get('/api/debug/env-check', (req, res) => {
-  const url = process.env.DB_URL || process.env.SUPABASE_URL || '(nessuna impostata)';
-  res.json({
-    url_effettivo_usato: url,
-    db_url_impostata: !!process.env.DB_URL,
-    supabase_url_impostata: !!process.env.SUPABASE_URL,
-    supabase_key_lunghezza: (process.env.SUPABASE_KEY || '').length,
-  });
-});
-
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
 const channex = createChannexServices(supabase);
 if (process.env.CHANNEX_API_KEY) {
