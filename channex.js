@@ -259,9 +259,8 @@ class ChannexBookings {
     try {
       const { data: mapping } = await this.supabase.from('channex_mappings').select('gestaway_property_id').eq('channex_property_id', attrs.property_id).single();
       const gPropertyId = mapping?.gestaway_property_id || null;
-      try {
-        await this.supabase.from('channex_revision_log').insert({ booking_id: bookingId, revision_id: revisionId, status, property_id: attrs.property_id || null, struttura_id: gPropertyId });
-      } catch(logErr) { console.warn('[Bookings] Revision log error:', logErr.message); }
+      const { error: logErr } = await this.supabase.from('channex_revision_log').insert({ revision_id: revisionId, struttura_id: gPropertyId, elaborato: true });
+      if (logErr) console.warn('[Bookings] Revision log error:', logErr.message);
 
       if (!gPropertyId) {
         console.error(`[Bookings] Nessuna struttura mappata per property Channex ${attrs.property_id} — booking ${bookingId} ignorato`);
@@ -273,31 +272,30 @@ class ChannexBookings {
       }
 
       const bookingData = {
-        channex_booking_id: bookingId, channex_revision_id: revisionId,
-        channex_property_id: attrs.property_id, gestaway_property_id: gPropertyId, struttura_id: gPropertyId,
-        stato: status, ota_name: attrs.ota_name, ota_reservation_code: attrs.ota_reservation_code,
+        booking_id: bookingId, gestaway_property_id: gPropertyId, struttura_id: gPropertyId,
+        stato: status, ota_name: attrs.ota_name,
         arrivo: attrs.arrival_date, partenza: attrs.departure_date,
-        importo: attrs.amount, valuta: attrs.currency,
+        importo: attrs.amount,
         ospite_nome: attrs.customer?.name, ospite_cognome: attrs.customer?.surname,
-        ospite_email: attrs.customer?.mail, ospite_telefono: attrs.customer?.phone,
-        adulti: attrs.occupancy?.adults, bambini: attrs.occupancy?.children,
-        note: attrs.notes, raw_payload: attrs,
+        raw_payload: attrs,
       };
 
       // Salva SEMPRE in channex_prenotazioni (anche se cancelled) per avere le date
-      await this.supabase.from('channex_prenotazioni').upsert(bookingData, { onConflict: 'channex_booking_id' });
+      const { error: cpErr } = await this.supabase.from('channex_prenotazioni').upsert(bookingData, { onConflict: 'booking_id' });
+      if (cpErr) console.error('[Bookings] Errore upsert channex_prenotazioni:', cpErr.message);
 
       const appartamentoId = await this._getAppartamentoId(gPropertyId, attrs);
 
       if (status === 'cancelled') {
         // Cancella in prenotazioni (scoped per struttura)
-        await this.supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('uid', 'channex_' + bookingId).eq('struttura_id', gPropertyId);
+        const { error: cancErr } = await this.supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('uid', 'channex_' + bookingId).eq('struttura_id', gPropertyId);
+        if (cancErr) console.error('[Bookings] Errore cancellazione prenotazione:', cancErr.message);
 
         // Recupera le date — prima da attrs, poi da channex_prenotazioni se attrs non le ha
         let arrivo = attrs.arrival_date;
         let partenza = attrs.departure_date;
         if (!arrivo || !partenza) {
-          const { data: existing } = await this.supabase.from('channex_prenotazioni').select('arrivo, partenza').eq('channex_booking_id', bookingId).single();
+          const { data: existing } = await this.supabase.from('channex_prenotazioni').select('arrivo, partenza').eq('booking_id', bookingId).single();
           arrivo = existing?.arrivo;
           partenza = existing?.partenza;
         }
@@ -344,7 +342,7 @@ class ChannexBookings {
         const ospiteNome = [attrs.customer?.name, attrs.customer?.surname].filter(Boolean).join(' ') || 'Ospite';
         const ota = (attrs.ota_name || '').toLowerCase();
         const fonte = ota.includes('booking') ? 'Booking' : ota.includes('airbnb') ? 'Airbnb' : 'Channex';
-        await this.supabase.from('prenotazioni').upsert({
+        const { error: prenErr } = await this.supabase.from('prenotazioni').upsert({
           uid: 'channex_' + bookingId,
           struttura_id: gPropertyId,
           ospite: ospiteNome,
@@ -357,6 +355,7 @@ class ChannexBookings {
           appartamento_id: appartamentoId,
           note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
         }, { onConflict: 'struttura_id,uid' });
+        if (prenErr) console.error('[Bookings] Errore upsert prenotazione:', prenErr.message);
         // Invia messaggio automatico di conferma per nuove prenotazioni, se la struttura ne ha configurato uno
         if (status === 'new') {
           try {

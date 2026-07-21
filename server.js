@@ -314,7 +314,9 @@ app.post('/api/debug/simula-revision', async (req, res) => {
         notes: null,
       }
     });
-    res.json({ ok: true, booking_id: bookingId });
+    const { data: pren } = await supabase.from('prenotazioni').select('*').eq('uid', 'channex_' + bookingId).single();
+    const { data: cpren } = await supabase.from('channex_prenotazioni').select('*').eq('booking_id', bookingId).single();
+    res.json({ ok: true, booking_id: bookingId, prenotazione_creata: pren || null, channex_prenotazioni_creata: cpren || null });
   } catch (e) { res.status(500).json({ error: e.message, stack: e.stack }); }
 });
 
