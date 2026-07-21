@@ -737,6 +737,53 @@ app.get('/api/channex/room-types', async (req, res) => {
   try { res.json(await channex.client.listRoomTypes(propertyId)); }
   catch (err) { res.status(500).json({ errore: err.message }); }
 });
+app.post('/api/channex/room-types', async (req, res) => {
+  const propertyId = await getPropertyId(req.strutturaId);
+  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
+  const { titolo, appartamento_id, occupazione_max } = req.body;
+  if (!titolo || !appartamento_id) return res.status(400).json({ errore: 'titolo e appartamento_id obbligatori.' });
+  const { data: apt } = await supabase.from('appartamenti').select('id').eq('id', appartamento_id).eq('struttura_id', req.strutturaId).single();
+  if (!apt) return res.status(403).json({ errore: 'Appartamento non appartenente alla tua struttura.' });
+  try {
+    const r = await channex.client.createRoomType({
+      property_id: propertyId, title: titolo, count_of_rooms: 1,
+      occ_adults: occupazione_max || 2, occ_children: 0, occ_infants: 0, default_occupancy: occupazione_max || 2,
+    });
+    const channexRoomTypeId = r?.data?.id;
+    if (!channexRoomTypeId) return res.status(500).json({ errore: 'Channex non ha restituito un id room type.' });
+    const { error } = await supabase.from('channex_room_mappings').insert({
+      gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId,
+      gestaway_room_id: appartamento_id, gestaway_room_nome: titolo,
+      channex_room_type_id: channexRoomTypeId, channex_room_type_nome: titolo,
+    });
+    if (error) return res.status(500).json({ errore: error.message });
+    res.json({ ok: true, channex_room_type_id: channexRoomTypeId });
+  } catch (e) { res.status(500).json({ errore: e.message }); }
+});
+app.post('/api/channex/rate-plans', async (req, res) => {
+  const propertyId = await getPropertyId(req.strutturaId);
+  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
+  const { titolo, channex_room_type_id, prezzo, valuta } = req.body;
+  if (!titolo || !channex_room_type_id || !prezzo) return res.status(400).json({ errore: 'titolo, channex_room_type_id e prezzo obbligatori.' });
+  const { data: roomMap } = await supabase.from('channex_room_mappings').select('gestaway_room_id').eq('channex_room_type_id', channex_room_type_id).eq('gestaway_property_id', req.strutturaId).single();
+  if (!roomMap) return res.status(403).json({ errore: 'Room type non appartenente alla tua struttura.' });
+  try {
+    const r = await channex.client.createRatePlan({
+      property_id: propertyId, room_type_id: channex_room_type_id, title: titolo, currency: valuta || 'EUR',
+      options: [{ occupancy: 2, rate: Math.round(prezzo * 100), is_primary: true }],
+    });
+    const channexRatePlanId = r?.data?.id;
+    if (!channexRatePlanId) return res.status(500).json({ errore: 'Channex non ha restituito un id rate plan.' });
+    const { error } = await supabase.from('channex_rate_mappings').insert({
+      gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId,
+      gestaway_room_id: roomMap.gestaway_room_id, channex_room_type_id,
+      channex_rate_plan_id: channexRatePlanId, channex_rate_plan_nome: titolo,
+      prezzo_default: prezzo, valuta: valuta || 'EUR',
+    });
+    if (error) return res.status(500).json({ errore: error.message });
+    res.json({ ok: true, channex_rate_plan_id: channexRatePlanId });
+  } catch (e) { res.status(500).json({ errore: e.message }); }
+});
 app.put('/api/channex/rate-plans/:ratePlanId/restrictions', async (req, res) => {
   if (!(await rateplanAppartieneAStruttura(req.params.ratePlanId, req.strutturaId))) {
     return res.status(403).json({ error: 'Rate plan non appartenente alla tua struttura.' });
