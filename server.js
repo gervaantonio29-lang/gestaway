@@ -304,60 +304,6 @@ if (process.env.CHANNEX_API_KEY) {
   console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
 }
 
-// DEBUG TEMPORANEO — imposta min_stay_arrival=2 su ven/sab/dom per i prossimi N giorni,
-// su una lista di rate plan qualsiasi (raggruppa il weekend in un unico range per settimana).
-app.post('/api/debug/imposta-weekend-arrival', async (req, res) => {
-  try {
-    const { property_id, rate_plan_ids, giorni = 365 } = req.body;
-    const oggi = new Date();
-    const values = [];
-    let i = 0;
-    while (i < giorni) {
-      const d = new Date(oggi); d.setDate(d.getDate() + i);
-      const dow = d.getDay(); // 0=Dom, 5=Ven, 6=Sab
-      if (dow === 5) {
-        const fine = new Date(d); fine.setDate(fine.getDate() + 2); // ven+sab+dom
-        const ds = x => x.toISOString().slice(0, 10);
-        for (const rp of rate_plan_ids) {
-          values.push({ property_id, rate_plan_id: rp, date_from: ds(d), date_to: ds(fine), min_stay_arrival: 2 });
-        }
-        i += 3;
-      } else {
-        i += 1;
-      }
-    }
-    const risultati = [];
-    for (let j = 0; j < values.length; j += 50) {
-      risultati.push(await channex.client.pushRestrictions(values.slice(j, j + 50)));
-    }
-    res.json({ ok: true, righe_inviate: values.length, risultati });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// DEBUG TEMPORANEO — cambia min_stay_type su una property Channex qualsiasi.
-app.post('/api/debug/imposta-min-stay-type', async (req, res) => {
-  try {
-    const r = await channex.client.put('/properties/' + req.body.property_id, { property: { settings: { min_stay_type: req.body.min_stay_type } } });
-    res.json(r);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// DEBUG TEMPORANEO — legge i dettagli di una property Channex qualsiasi (sola lettura).
-app.get('/api/debug/property-detail-qualsiasi', async (req, res) => {
-  try { res.json(await channex.client.get('/properties/' + req.query.property_id)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// DEBUG TEMPORANEO — legge le restrizioni reali per una property Channex qualsiasi
-// sull'account condiviso (sola lettura, nessuna modifica). Da rimuovere dopo l'uso.
-app.get('/api/debug/leggi-restrizioni', async (req, res) => {
-  try {
-    const { property_id, date_from, date_to, restrictions } = req.query;
-    const r = await channex.client.get(`/restrictions?filter[property_id]=${property_id}&filter[date][gte]=${date_from}&filter[date][lte]=${date_to}&filter[restrictions]=${restrictions || 'min_stay_arrival,min_stay_through'}`);
-    res.json(r);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // Webhook Channex: pubblico, nessun token di sessione (chiamato da Channex stesso).
 // Deve restare PRIMA del gate app.use('/api', requireAuth) qui sotto.
 // Se CHANNEX_WEBHOOK_SECRET è impostata, l'URL configurato su Channex deve
