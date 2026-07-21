@@ -304,6 +304,12 @@ if (process.env.CHANNEX_API_KEY) {
   console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
 }
 
+// DEBUG TEMPORANEO — legge i dettagli di una property Channex qualsiasi (sola lettura).
+app.get('/api/debug/property-detail-qualsiasi', async (req, res) => {
+  try { res.json(await channex.client.get('/properties/' + req.query.property_id)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // DEBUG TEMPORANEO — legge le restrizioni reali per una property Channex qualsiasi
 // sull'account condiviso (sola lettura, nessuna modifica). Da rimuovere dopo l'uso.
 app.get('/api/debug/leggi-restrizioni', async (req, res) => {
