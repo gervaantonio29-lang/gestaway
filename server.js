@@ -45,6 +45,11 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       await provisionaStruttura(session);
+    } else if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object;
+      const { error } = await supabase.from('strutture').update({ stato: 'cancellato' }).eq('stripe_subscription_id', subscription.id);
+      if (error) console.error('[Stripe Webhook] Errore disattivazione struttura:', error.message);
+      else console.log(`[Stripe Webhook] Struttura disattivata per subscription ${subscription.id}`);
     }
     res.json({ received: true });
   } catch (err) {
@@ -76,6 +81,11 @@ async function requireAuth(req, res, next) {
   if (new Date(sessione.scade_il) < new Date()) {
     await supabase.from('sessioni').delete().eq('token', token);
     return res.status(401).json({ error: 'Sessione scaduta.' });
+  }
+  const { data: struttura } = await supabase.from('strutture').select('stato').eq('id', sessione.struttura_id).single();
+  if (struttura?.stato === 'cancellato') {
+    await supabase.from('sessioni').delete().eq('token', token);
+    return res.status(403).json({ error: 'Il tuo abbonamento è stato cancellato. Contatta info@gestaway.com per riattivarlo.' });
   }
   req.strutturaId = sessione.struttura_id;
   req.utenteId = sessione.utente_id;
@@ -123,6 +133,10 @@ app.post('/api/login', async (req, res) => {
 
   const passwordOk = await bcrypt.compare(password, utente.password_hash);
   if (!passwordOk) return res.status(401).json({ error: 'Credenziali non valide.' });
+
+  if (utente.strutture?.stato === 'cancellato') {
+    return res.status(403).json({ error: 'Il tuo abbonamento è stato cancellato. Contatta info@gestaway.com per riattivarlo.' });
+  }
 
   const token = generaToken();
   await supabase.from('sessioni').insert({ token, struttura_id: utente.struttura_id, utente_id: utente.id });
