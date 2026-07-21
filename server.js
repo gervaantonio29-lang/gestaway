@@ -300,8 +300,8 @@ app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public',
 // con lo stesso codice usato per le prenotazioni reali. Da rimuovere dopo l'uso.
 app.post('/api/debug/simula-revision', async (req, res) => {
   try {
-    const { property_id, room_type_id, arrivo, partenza, status } = req.body;
-    const bookingId = 'test_' + Date.now();
+    const { property_id, room_type_id, arrivo, partenza, status, booking_id } = req.body;
+    const bookingId = booking_id || ('test_' + Date.now());
     await channex.bookings._processRevision({
       attributes: {
         id: 'rev_' + Date.now(), booking_id: bookingId, status: status || 'new',
