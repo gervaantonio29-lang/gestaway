@@ -305,7 +305,7 @@ app.post('/api/debug/crea-prenotazione-test', async (req, res) => {
         property_id, ota_name: 'Direct',
         arrival_date: arrivo, departure_date: partenza,
         currency: 'EUR', amount: '150.00',
-        rooms: [{ room_type_id, rate_plan_id, days: { [arrivo]: '7500' } }],
+        rooms: [{ room_type_id, rate_plan_id, occupancy: { adults: 2, children: 0, infants: 0 }, days: { [arrivo]: '7500' } }],
         customer: { name: 'Mario', surname: 'Rossi', mail: 'mario.rossi.test@example.com', phone: '+391234567890' },
       }
     });
