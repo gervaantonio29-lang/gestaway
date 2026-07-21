@@ -304,6 +304,14 @@ if (process.env.CHANNEX_API_KEY) {
   console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
 }
 
+// DEBUG TEMPORANEO — cambia min_stay_type su una property Channex qualsiasi.
+app.post('/api/debug/imposta-min-stay-type', async (req, res) => {
+  try {
+    const r = await channex.client.put('/properties/' + req.body.property_id, { property: { settings: { min_stay_type: req.body.min_stay_type } } });
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // DEBUG TEMPORANEO — legge i dettagli di una property Channex qualsiasi (sola lettura).
 app.get('/api/debug/property-detail-qualsiasi', async (req, res) => {
   try { res.json(await channex.client.get('/properties/' + req.query.property_id)); }
