@@ -304,6 +304,16 @@ if (process.env.CHANNEX_API_KEY) {
   console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
 }
 
+// DEBUG TEMPORANEO — legge le restrizioni reali per una property Channex qualsiasi
+// sull'account condiviso (sola lettura, nessuna modifica). Da rimuovere dopo l'uso.
+app.get('/api/debug/leggi-restrizioni', async (req, res) => {
+  try {
+    const { property_id, date_from, date_to, restrictions } = req.query;
+    const r = await channex.client.get(`/restrictions?filter[property_id]=${property_id}&filter[date][gte]=${date_from}&filter[date][lte]=${date_to}&filter[restrictions]=${restrictions || 'min_stay_arrival,min_stay_through'}`);
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Webhook Channex: pubblico, nessun token di sessione (chiamato da Channex stesso).
 // Deve restare PRIMA del gate app.use('/api', requireAuth) qui sotto.
 // Se CHANNEX_WEBHOOK_SECRET è impostata, l'URL configurato su Channex deve
