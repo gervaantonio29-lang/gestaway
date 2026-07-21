@@ -64,8 +64,8 @@ class ChannexClient {
   async createProperty(attrs)     { return this.post('/properties', { property: attrs }); }
   async createRoomType(attrs)     { return this.post('/room_types', { room_type: attrs }); }
   async createRatePlan(attrs)     { return this.post('/rate_plans', { rate_plan: attrs }); }
-  async listRoomTypes(propertyId) { return this.get(`/room_types?property_id=${propertyId}`); }
-  async listRatePlans(propertyId) { return this.get(`/rate_plans?property_id=${propertyId}`); }
+  async listRoomTypes(propertyId) { return this.get(`/room_types?filter[property_id]=${propertyId}`); }
+  async listRatePlans(propertyId) { return this.get(`/rate_plans?filter[property_id]=${propertyId}`); }
   async pushRestrictions(values)  { return this.post('/restrictions', { values }); }
   async pushAvailability(values)  { return this.post('/availability', { values }); }
   async getBookingRevisionsFeed() { return this.get('/booking_revisions/feed?page[size]=100'); }
