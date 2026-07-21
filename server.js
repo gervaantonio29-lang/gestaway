@@ -304,6 +304,36 @@ if (process.env.CHANNEX_API_KEY) {
   console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
 }
 
+// DEBUG TEMPORANEO — imposta min_stay_arrival=2 su ven/sab/dom per i prossimi N giorni,
+// su una lista di rate plan qualsiasi (raggruppa il weekend in un unico range per settimana).
+app.post('/api/debug/imposta-weekend-arrival', async (req, res) => {
+  try {
+    const { property_id, rate_plan_ids, giorni = 365 } = req.body;
+    const oggi = new Date();
+    const values = [];
+    let i = 0;
+    while (i < giorni) {
+      const d = new Date(oggi); d.setDate(d.getDate() + i);
+      const dow = d.getDay(); // 0=Dom, 5=Ven, 6=Sab
+      if (dow === 5) {
+        const fine = new Date(d); fine.setDate(fine.getDate() + 2); // ven+sab+dom
+        const ds = x => x.toISOString().slice(0, 10);
+        for (const rp of rate_plan_ids) {
+          values.push({ property_id, rate_plan_id: rp, date_from: ds(d), date_to: ds(fine), min_stay_arrival: 2 });
+        }
+        i += 3;
+      } else {
+        i += 1;
+      }
+    }
+    for (let j = 0; j < values.length; j += 50) {
+      await channex.outbox.enqueue('restrictions', { values: values.slice(j, j + 50) }, property_id);
+    }
+    await channex.outbox.flush();
+    res.json({ ok: true, righe_inviate: values.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // DEBUG TEMPORANEO — cambia min_stay_type su una property Channex qualsiasi.
 app.post('/api/debug/imposta-min-stay-type', async (req, res) => {
   try {
