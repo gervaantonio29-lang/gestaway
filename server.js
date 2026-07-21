@@ -296,25 +296,26 @@ app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
-// DEBUG TEMPORANEO — crea una prenotazione di test diretta su Channex. Da rimuovere dopo l'uso.
-app.post('/api/debug/crea-prenotazione-test', async (req, res) => {
+// DEBUG TEMPORANEO — simula l'arrivo di una booking revision da Channex, elaborandola
+// con lo stesso codice usato per le prenotazioni reali. Da rimuovere dopo l'uso.
+app.post('/api/debug/simula-revision', async (req, res) => {
   try {
-    const { property_id, room_type_id, rate_plan_id, arrivo, partenza } = req.body;
-    const days = {};
-    for (let d = new Date(arrivo); d < new Date(partenza); d.setDate(d.getDate() + 1)) {
-      days[d.toISOString().slice(0, 10)] = '7500';
-    }
-    const r = await channex.client.post('/bookings', {
-      booking: {
-        property_id, ota_name: 'Direct',
+    const { property_id, room_type_id, arrivo, partenza, status } = req.body;
+    const bookingId = 'test_' + Date.now();
+    await channex.bookings._processRevision({
+      attributes: {
+        id: 'rev_' + Date.now(), booking_id: bookingId, status: status || 'new',
+        property_id, ota_name: 'Airbnb', ota_reservation_code: 'TESTCODE123',
         arrival_date: arrivo, departure_date: partenza,
-        currency: 'EUR', amount: '150.00',
-        rooms: [{ room_type_id, rate_plan_id, occupancy: { adults: 2, children: 0, infants: 0 }, days }],
+        amount: '150.00', currency: 'EUR',
         customer: { name: 'Mario', surname: 'Rossi', mail: 'mario.rossi.test@example.com', phone: '+391234567890' },
+        occupancy: { adults: 2, children: 0 },
+        rooms: [{ room_type_id }],
+        notes: null,
       }
     });
-    res.json(r);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    res.json({ ok: true, booking_id: bookingId });
+  } catch (e) { res.status(500).json({ error: e.message, stack: e.stack }); }
 });
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
