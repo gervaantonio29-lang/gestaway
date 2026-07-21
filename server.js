@@ -296,6 +296,23 @@ app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
+// DEBUG TEMPORANEO — crea una prenotazione di test diretta su Channex. Da rimuovere dopo l'uso.
+app.post('/api/debug/crea-prenotazione-test', async (req, res) => {
+  try {
+    const { property_id, room_type_id, rate_plan_id, arrivo, partenza } = req.body;
+    const r = await channex.client.post('/bookings', {
+      booking: {
+        property_id, ota_name: 'Direct',
+        arrival_date: arrivo, departure_date: partenza,
+        currency: 'EUR', amount: '150.00',
+        rooms: [{ room_type_id, rate_plan_id, days: { [arrivo]: '7500' } }],
+        customer: { name: 'Mario', surname: 'Rossi', mail: 'mario.rossi.test@example.com', phone: '+391234567890' },
+      }
+    });
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
 const channex = createChannexServices(supabase);
 if (process.env.CHANNEX_API_KEY) {
