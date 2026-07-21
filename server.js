@@ -326,11 +326,11 @@ app.post('/api/debug/imposta-weekend-arrival', async (req, res) => {
         i += 1;
       }
     }
+    const risultati = [];
     for (let j = 0; j < values.length; j += 50) {
-      await channex.outbox.enqueue('restrictions', { values: values.slice(j, j + 50) }, property_id);
+      risultati.push(await channex.client.pushRestrictions(values.slice(j, j + 50)));
     }
-    await channex.outbox.flush();
-    res.json({ ok: true, righe_inviate: values.length });
+    res.json({ ok: true, righe_inviate: values.length, risultati });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
