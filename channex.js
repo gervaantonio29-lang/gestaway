@@ -82,8 +82,8 @@ class ChannexOutbox {
     this._minuteStart = Date.now();
   }
   async enqueue(tipo, payload, propertyId) {
-    const { error } = await this.supabase.from('channex_outbox').insert({ tipo, payload, property_id: propertyId, struttura_id: propertyId, stato: 'pending', tentativi: 0 });
-    if (error) console.error('[Outbox] Errore enqueue:', error.message);
+    const { error } = await this.supabase.from('channex_outbox').insert({ tipo, payload, struttura_id: propertyId, stato: 'pending', tentativi: 0 });
+    if (error) { console.error('[Outbox] Errore enqueue:', error.message); throw new Error('Errore enqueue: ' + error.message); }
   }
   async flush() {
     if (this._processing) return;
