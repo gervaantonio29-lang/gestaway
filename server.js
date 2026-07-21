@@ -296,30 +296,6 @@ app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
-// DEBUG TEMPORANEO — simula l'arrivo di una booking revision da Channex, elaborandola
-// con lo stesso codice usato per le prenotazioni reali. Da rimuovere dopo l'uso.
-app.post('/api/debug/simula-revision', async (req, res) => {
-  try {
-    const { property_id, room_type_id, arrivo, partenza, status, booking_id } = req.body;
-    const bookingId = booking_id || ('test_' + Date.now());
-    await channex.bookings._processRevision({
-      attributes: {
-        id: 'rev_' + Date.now(), booking_id: bookingId, status: status || 'new',
-        property_id, ota_name: 'Airbnb', ota_reservation_code: 'TESTCODE123',
-        arrival_date: arrivo, departure_date: partenza,
-        amount: '150.00', currency: 'EUR',
-        customer: { name: 'Mario', surname: 'Rossi', mail: 'mario.rossi.test@example.com', phone: '+391234567890' },
-        occupancy: { adults: 2, children: 0 },
-        rooms: [{ room_type_id }],
-        notes: null,
-      }
-    });
-    const { data: pren } = await supabase.from('prenotazioni').select('*').eq('uid', 'channex_' + bookingId).single();
-    const { data: cpren } = await supabase.from('channex_prenotazioni').select('*').eq('booking_id', bookingId).single();
-    res.json({ ok: true, booking_id: bookingId, prenotazione_creata: pren || null, channex_prenotazioni_creata: cpren || null });
-  } catch (e) { res.status(500).json({ error: e.message, stack: e.stack }); }
-});
-
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
 const channex = createChannexServices(supabase);
 if (process.env.CHANNEX_API_KEY) {
