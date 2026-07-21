@@ -300,12 +300,16 @@ app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.post('/api/debug/crea-prenotazione-test', async (req, res) => {
   try {
     const { property_id, room_type_id, rate_plan_id, arrivo, partenza } = req.body;
+    const days = {};
+    for (let d = new Date(arrivo); d < new Date(partenza); d.setDate(d.getDate() + 1)) {
+      days[d.toISOString().slice(0, 10)] = '7500';
+    }
     const r = await channex.client.post('/bookings', {
       booking: {
         property_id, ota_name: 'Direct',
         arrival_date: arrivo, departure_date: partenza,
         currency: 'EUR', amount: '150.00',
-        rooms: [{ room_type_id, rate_plan_id, occupancy: { adults: 2, children: 0, infants: 0 }, days: { [arrivo]: '7500' } }],
+        rooms: [{ room_type_id, rate_plan_id, occupancy: { adults: 2, children: 0, infants: 0 }, days }],
         customer: { name: 'Mario', surname: 'Rossi', mail: 'mario.rossi.test@example.com', phone: '+391234567890' },
       }
     });
