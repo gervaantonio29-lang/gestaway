@@ -204,6 +204,9 @@ app.post('/api/checkout', async (req, res) => {
   const cinPulito = String(cin).replace(/\s+/g, '').toUpperCase();
   if (!CIN_REGEX.test(cinPulito)) return res.status(400).json({ error: 'CIN non valido.' });
 
+  const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
+  if (esistente) return res.status(409).json({ error: 'Esiste già un account con questa email. Accedi invece di registrarti di nuovo.' });
+
   const subscriptionData = PIANI_SENZA_TRIAL.includes(piano)
     ? { metadata: { nome, piano, cin: cinPulito } }
     : { trial_period_days: 14, metadata: { nome, piano, cin: cinPulito } };
