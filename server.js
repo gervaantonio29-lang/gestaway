@@ -679,7 +679,7 @@ app.post('/api/channex/connetti', async (req, res) => {
     });
     const channexPropertyId = r?.data?.id;
     if (!channexPropertyId) return res.status(500).json({ error: 'Channex non ha restituito un id property.' });
-    const { error } = await supabase.from('channex_mappings').insert({ gestaway_property_id: req.strutturaId, channex_property_id: channexPropertyId });
+    const { error } = await supabase.from('channex_mappings').insert({ gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId, channex_property_id: channexPropertyId });
     if (error) return res.status(500).json({ error: error.message });
     res.json({ ok: true, channex_property_id: channexPropertyId });
   } catch (e) { res.status(500).json({ error: e.message }); }
