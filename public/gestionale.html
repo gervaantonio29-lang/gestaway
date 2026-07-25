@@ -226,7 +226,10 @@
     .cal-header select { width: 100%; }
     .card-body { grid-template-columns: minmax(0, 1fr) !important; }
     .ospite-row { flex-wrap: wrap; gap: 6px; }
+    .desktop-only { display: none !important; }
+    .mobile-only { display: block !important; }
   }
+  .mobile-only { display: none; }
 </style>
 </head>
 <body>
@@ -343,7 +346,7 @@
           <button class="btn btn-green" onclick="leggiEmailAirbnb()">🔄 Sincronizza (forza)</button>
           <span style="font-size:12px;color:var(--muted);margin-left:8px">Forza importazione nomi e importi dalle email</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-only">
           <table>
             <thead>
               <tr>
@@ -360,6 +363,7 @@
             <tbody id="pren-tbody"></tbody>
           </table>
         </div>
+        <div id="pren-mobile-list" class="mobile-only"></div>
       </div>
 
       <!-- Vista Calendario -->
@@ -497,6 +501,11 @@
         <h1 class="page-title">Registrazione Questura</h1>
       </div>
       <div class="alert alert-amber">⚠️ Per ogni prenotazione devi registrare i dati dell'ospite entro 24h dall'arrivo su <strong>alloggiatiweb.poliziadistato.it</strong>. Questo gestionale genera il file per te.</div>
+      <div class="toolbar" style="margin-bottom:1rem">
+        <button class="btn view-btn active" id="q-filtro-tutte" onclick="filtraQuestura('tutte')">Tutte</button>
+        <button class="btn view-btn" id="q-filtro-da-registrare" onclick="filtraQuestura('da-registrare')">⚠️ Da registrare</button>
+        <button class="btn view-btn" id="q-filtro-registrate" onclick="filtraQuestura('registrate')">✓ Registrate</button>
+      </div>
       <div id="questura-list"></div>
     </div>
 
@@ -769,8 +778,42 @@
     <div class="modal-footer">
       <button class="btn btn-danger" id="pren-delete-btn" onclick="deletePrenFromModal()" style="display:none;margin-right:auto">🗑️ Elimina</button>
       <button class="btn" id="pren-ricevuta-btn" onclick="scaricaRicevuta(document.getElementById('pren-id').value)" style="display:none">🧾 Ricevuta</button>
+      <button class="btn" id="pren-messaggio-btn" onclick="apriMessaggioRapido(document.getElementById('pren-id').value)" style="display:none">💬 Messaggio</button>
       <button class="btn" onclick="closeModal('modal-pren')">Annulla</button>
       <button class="btn btn-primary" onclick="salvaPrenotazione()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Messaggio Rapido -->
+<div class="modal-overlay" id="modal-messaggio-rapido">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>💬 Invia messaggio</h2>
+      <button class="modal-close" onclick="closeModal('modal-messaggio-rapido')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mr-booking-id">
+      <input type="hidden" id="mr-ospite-nome">
+      <div id="mr-ospite-label" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Template rapido</label>
+        <select id="mr-template" onchange="inserisciTemplateRapido()">
+          <option value="">📋 Scegli un template...</option>
+          <option value="conferma">✅ Conferma prenotazione</option>
+          <option value="prearrivo">🏠 Pre-arrivo</option>
+          <option value="checkin">🔑 Link check-in online</option>
+          <option value="checkout">👋 Check-out</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Messaggio</label>
+        <textarea id="mr-testo" placeholder="Scrivi il messaggio..." style="height:140px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-messaggio-rapido')">Annulla</button>
+      <button class="btn btn-primary" onclick="inviaMessaggioRapido()">📤 Invia</button>
     </div>
   </div>
 </div>
@@ -1256,13 +1299,18 @@ async function renderPrenotazioni() {
     return matchOspite && matchApt && matchMese && matchFonte && p.stato !== 'cancellata';
   }).sort((a, b) => (a.data_arrivo || '') > (b.data_arrivo || '') ? 1 : -1);
   const tbody = document.getElementById('pren-tbody');
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione trovata</td></tr>'; return; }
+  const mobileEl = document.getElementById('pren-mobile-list');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione trovata</td></tr>';
+    mobileEl.innerHTML = '<div class="empty-state">Nessuna prenotazione trovata</div>';
+    return;
+  }
   tbody.innerHTML = list.map(p => {
     const n = calcolaNotti(p);
     const totale = p.importo ? p.importo.toFixed(2) : (n * TARIFFA_NOTTE);
     const isReale = !!p.importo;    return `
     <tr>
-      <td><strong>${p.ospite || '—'}</strong>${p.email_ospite ? '<br><small style="color:var(--muted)">' + p.email_ospite + '</small>' : ''}</td>
+      <td><strong>${p.ospite || '—'}</strong> ${p.numero_ospiti ? `<span title="${p.numero_ospiti} ospit${p.numero_ospiti===1?'e':'i'} registrat${p.numero_ospiti===1?'o':'i'}" style="font-size:11px;color:var(--muted)">👥${p.numero_ospiti}</span>` : ''}${p.note ? `<span title="${(p.note+'').replace(/"/g,'&quot;')}" style="cursor:help">📝</span>` : ''}${p.email_ospite ? '<br><small style="color:var(--muted)">' + p.email_ospite + '</small>' : ''}</td>
       <td>${p.appartamento_nome || '—'}</td>
       <td>${formatDate(p.data_arrivo)}</td>
       <td>${formatDate(p.data_partenza)}</td>
@@ -1272,12 +1320,42 @@ async function renderPrenotazioni() {
       <td>
         <div style="display:flex;gap:4px">
           <button class="btn btn-sm" onclick="editPren(${p.id})" title="Modifica">✏️</button>
-          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})" title="Questura">🚔</button><button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})" title="Ricevuta">🧾</button>`}
+          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})" title="Questura">🚔</button><button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})" title="Ricevuta">🧾</button>${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido(${p.id})" title="Invia messaggio">💬</button>` : ''}`}
           <button class="btn btn-sm btn-danger" onclick="deletePren(${p.id})" title="Elimina">🗑️</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+
+  mobileEl.innerHTML = list.map(p => {
+    const n = calcolaNotti(p);
+    const totale = p.importo ? p.importo.toFixed(2) : (n * TARIFFA_NOTTE);
+    const isReale = !!p.importo;
+    const badge = `<span class="badge ${p.stato === 'richiesta' ? 'badge-amber' : p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : 'badge-gray'}">${p.stato === 'richiesta' ? '⏳ Richiesta' : p.fonte === 'blocco' ? '🚫 Blocco' : p.fonte}</span>`;
+    return `
+    <div class="card" style="margin-bottom:8px">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${p.ospite || '—'} ${p.numero_ospiti ? `<span title="${p.numero_ospiti} ospit${p.numero_ospiti===1?'e':'i'} registrat${p.numero_ospiti===1?'o':'i'}" style="font-size:12px;color:var(--muted)">👥${p.numero_ospiti}</span>` : ''}${p.note ? `<span title="${(p.note+'').replace(/"/g,'&quot;')}" style="cursor:help">📝</span>` : ''}</div>
+          <div class="card-sub">${p.appartamento_nome || '—'} · ${formatDate(p.data_arrivo)} → ${formatDate(p.data_partenza)} · ${n} nott${n===1?'e':'i'}</div>
+        </div>
+        ${badge}
+      </div>
+      <div style="padding:0 1.25rem 0.75rem;font-size:13px;color:var(--muted)">
+        ${p.fonte === 'blocco' ? '—' : `€${totale}${isReale ? ' <span style="color:var(--green)">✓reale</span>' : ''}`}
+        ${p.email_ospite ? '<br>' + p.email_ospite : ''}
+      </div>
+      <div class="card-actions" style="flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="editPren(${p.id})">✏️ Modifica</button>
+        ${p.fonte === 'blocco'
+          ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})">🔄 Converti</button>`
+          : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})">🚔 Questura</button>
+             <button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})">🧾 Ricevuta</button>
+             ${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido(${p.id})">💬 Messaggio</button>` : ''}`}
+        <button class="btn btn-sm btn-danger" onclick="deletePren(${p.id})">🗑️ Elimina</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state">Nessuna prenotazione trovata</div>';
 
   // Totali per mese con importi reali
   const mesiMap = {};
@@ -1307,6 +1385,7 @@ function openPrenModal() {
   document.getElementById('pren-modal-title').textContent = 'Nuova prenotazione';
   document.getElementById('pren-delete-btn').style.display = 'none';
   document.getElementById('pren-ricevuta-btn').style.display = 'none';
+  document.getElementById('pren-messaggio-btn').style.display = 'none';
   ['pren-ospite','pren-email','pren-tel','pren-arrivo','pren-partenza','pren-codice','pren-note'].forEach(id => document.getElementById(id).value = '');
   const sel = document.getElementById('pren-apt');
   sel.innerHTML = appartamenti.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
@@ -1319,6 +1398,7 @@ function editPren(id) {
   document.getElementById('pren-modal-title').textContent = 'Modifica prenotazione';
   document.getElementById('pren-delete-btn').style.display = 'inline-flex';
   document.getElementById('pren-ricevuta-btn').style.display = 'inline-flex';
+  document.getElementById('pren-messaggio-btn').style.display = (p.uid && p.uid.startsWith('channex_')) ? 'inline-flex' : 'none';
   document.getElementById('pren-ospite').value = p.ospite || '';
   document.getElementById('pren-email').value = p.email_ospite || '';
   document.getElementById('pren-tel').value = p.telefono_ospite || '';
@@ -1382,34 +1462,91 @@ async function deletePren(id) {
 }
 
 // ── Questura ──────────────────────────────────────────────────────────────────
+let questuraCache = [];
+let questuraFiltroAttivo = 'tutte';
 async function renderQuestura() {
   prenotazioni = await api('/api/prenotazioni');
   const oggi = dateToStr(new Date());
-  const list = prenotazioni.filter(p => p.data_arrivo <= oggi && p.stato !== 'cancellata');
+  const canaleChannex = p => p.uid && p.uid.startsWith('channex_');
+  // Include anche le prenotazioni future senza dati ospite (canale Airbnb/Booking),
+  // cosi' si puo' inviare il promemoria di check-in PRIMA dell'arrivo e non solo dopo.
+  const list = prenotazioni
+    .filter(p => p.stato !== 'cancellata' && (p.data_arrivo <= oggi || canaleChannex(p)))
+    .sort((a, b) => (b.data_arrivo || '').localeCompare(a.data_arrivo || ''));
   const el = document.getElementById('questura-list');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🚔</div>Nessuna prenotazione da registrare</div>'; return; }
-  el.innerHTML = list.map(p => `
+  el.innerHTML = '<div class="empty-state">Caricamento dati ospiti...</div>';
+  questuraCache = await Promise.all(list.map(async p => {
+    const ospiti = await api('/api/prenotazioni/' + p.id + '/ospiti');
+    return { p, ospiti: ospiti || [] };
+  }));
+  disegnaListaQuestura();
+}
+function filtraQuestura(tipo) {
+  questuraFiltroAttivo = tipo;
+  ['tutte', 'da-registrare', 'registrate'].forEach(t => {
+    document.getElementById('q-filtro-' + t)?.classList.toggle('active', t === tipo);
+  });
+  disegnaListaQuestura();
+}
+function disegnaListaQuestura() {
+  const el = document.getElementById('questura-list');
+  const canaleChannex = p => p.uid && p.uid.startsWith('channex_');
+  const filtrate = questuraCache.filter(({ p }) => {
+    if (questuraFiltroAttivo === 'registrate') return !!p.questura_inviata;
+    if (questuraFiltroAttivo === 'da-registrare') return !p.questura_inviata;
+    return true;
+  });
+  if (!filtrate.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🚔</div>Nessuna prenotazione in questa vista</div>'; return; }
+  const oggi = dateToStr(new Date());
+  el.innerHTML = filtrate.map(({ p, ospiti }) => {
+    const futura = p.data_arrivo > oggi;
+    const badge = futura
+      ? '<span class="badge badge-blue">🕓 Non ancora arrivato</span>'
+      : (p.questura_inviata ? '<span class="badge badge-green">✓ Registrato</span>' : '<span class="badge badge-red">⚠️ Da registrare</span>');
+    return `
     <div class="card" style="margin-bottom:8px">
       <div class="card-header">
         <div>
           <div class="card-title">${p.ospite || 'Ospite sconosciuto'}</div>
           <div class="card-sub">${p.appartamento_nome} · Arrivo: ${formatDate(p.data_arrivo)}</div>
         </div>
-        ${p.questura_inviata ? '<span class="badge badge-green">✓ Registrato</span>' : '<span class="badge badge-red">⚠️ Da registrare</span>'}
+        ${badge}
+      </div>
+      <div style="padding:0 1.25rem 0.75rem;font-size:13px;color:var(--muted)">
+        ${ospiti.length
+          ? '👤 ' + ospiti.length + ' ospit' + (ospiti.length === 1 ? 'e' : 'i') + ' inserit' + (ospiti.length === 1 ? 'o' : 'i') + ': ' + ospiti.map(o => `${o.nome} ${o.cognome}`).join(', ')
+          : '⚠️ Nessun dato ospite inserito ancora'}
       </div>
       <div class="card-actions">
         <button class="btn btn-sm btn-primary" onclick="openQuestura(${p.id})">📋 Gestisci dati ospite</button>
-        ${!p.questura_inviata ? `<button class="btn btn-sm btn-green" onclick="segnaRegistrato(${p.id})">✓ Segna come registrato</button>` : ''}
+        ${!futura && !p.questura_inviata ? `<button class="btn btn-sm btn-green" onclick="segnaRegistrato(${p.id})">✓ Segna come registrato</button>` : ''}
+        ${!futura && p.questura_inviata ? `<button class="btn btn-sm" onclick="annullaRegistrato(${p.id})">↩️ Annulla registrazione</button>` : ''}
+        ${!ospiti.length && canaleChannex(p) ? `<button class="btn btn-sm" onclick="inviaPromemoriaCheckin(${p.id})">📤 Invia promemoria check-in</button>` : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+function inviaPromemoriaCheckin(prenId) {
+  apriMessaggioRapido(prenId);
+  document.getElementById('mr-template').value = 'checkin';
+  inserisciTemplateRapido();
 }
 
 async function segnaRegistrato(id) {
   const pren = prenotazioni.find(x => x.id === id);
   if (!pren) return;
-  await api('/api/prenotazioni/' + id, 'PUT', { ...pren, questura_inviata: 1 });
+  const r = await api('/api/prenotazioni/' + id, 'PUT', { questura_inviata: 1 });
+  if (r?.error) { toast('Errore: ' + r.error, 'error'); return; }
   toast('Segnato come registrato');
+  renderQuestura();
+}
+async function annullaRegistrato(id) {
+  const pren = prenotazioni.find(x => x.id === id);
+  if (!pren) return;
+  const r = await api('/api/prenotazioni/' + id, 'PUT', { questura_inviata: 0 });
+  if (r?.error) { toast('Errore: ' + r.error, 'error'); return; }
+  toast('Registrazione annullata');
   renderQuestura();
 }
 
@@ -1585,6 +1722,39 @@ async function salvaRicevutaCfg() {
   };
   await api('/api/impostazioni', 'POST', data);
   toast('Dati ricevuta salvati');
+}
+function apriMessaggioRapido(prenId) {
+  const p = prenotazioni.find(x => x.id == prenId);
+  if (!p || !p.uid || !p.uid.startsWith('channex_')) { toast('Messaggio disponibile solo per prenotazioni Airbnb/Booking', 'error'); return; }
+  const bookingId = p.uid.replace('channex_', '');
+  document.getElementById('mr-booking-id').value = bookingId;
+  document.getElementById('mr-ospite-nome').value = p.ospite || 'Ospite';
+  document.getElementById('mr-ospite-label').textContent = '👤 Destinatario: ' + (p.ospite || 'Ospite');
+  document.getElementById('mr-testo').value = '';
+  document.getElementById('mr-template').value = '';
+  openModal('modal-messaggio-rapido');
+}
+function inserisciTemplateRapido() {
+  const sel = document.getElementById('mr-template').value;
+  if (!sel) return;
+  const nome = document.getElementById('mr-ospite-nome').value || 'Ospite';
+  const templates = {
+    conferma: `Gentile ${nome},\n\nGrazie per la prenotazione! La sua prenotazione è confermata.\n\nA presto!`,
+    prearrivo: `Gentile ${nome},\n\nManca poco al suo arrivo! Le manderemo a breve i dettagli per il check-in.\n\nA presto!`,
+    checkin: `Gentile ${nome},\n\nPuò completare il check-in online seguendo il link che le abbiamo inviato.\n\nA presto!`,
+    checkout: `Gentile ${nome},\n\nSperiamo che il soggiorno sia stato di suo gradimento!\n\nGrazie e buon viaggio! 🙏`
+  };
+  document.getElementById('mr-testo').value = templates[sel] || '';
+}
+async function inviaMessaggioRapido() {
+  const bookingId = document.getElementById('mr-booking-id').value;
+  const testo = document.getElementById('mr-testo').value.trim();
+  if (!testo) { toast('Scrivi un messaggio', 'error'); return; }
+  try {
+    await api('/api/messaggi/invia', 'POST', { booking_id: bookingId, messaggio: testo });
+    toast('✅ Messaggio inviato!');
+    closeModal('modal-messaggio-rapido');
+  } catch(e) { toast('Errore: ' + e.message, 'error'); }
 }
 async function scaricaRicevuta(id) {
   try {

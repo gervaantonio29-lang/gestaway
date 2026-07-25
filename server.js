@@ -361,7 +361,10 @@ app.delete('/api/appartamenti/:id', async (req, res) => {
 app.get('/api/prenotazioni', async (req, res) => {
   const { data, error } = await supabase.from('prenotazioni').select('*, appartamenti(nome)').eq('struttura_id', req.strutturaId).order('data_arrivo', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—' })));
+  const { data: ospitiRows } = await supabase.from('ospiti').select('prenotazione_id').eq('struttura_id', req.strutturaId);
+  const conteggioOspiti = {};
+  (ospitiRows || []).forEach(o => { conteggioOspiti[o.prenotazione_id] = (conteggioOspiti[o.prenotazione_id] || 0) + 1; });
+  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—', numero_ospiti: conteggioOspiti[p.id] || 0 })));
 });
 app.post('/api/prenotazioni', async (req, res) => {
   const uid = 'manual_' + Date.now();
