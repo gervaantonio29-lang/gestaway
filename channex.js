@@ -277,6 +277,7 @@ class ChannexBookings {
         arrivo: attrs.arrival_date, partenza: attrs.departure_date,
         importo: attrs.amount,
         ospite_nome: attrs.customer?.name, ospite_cognome: attrs.customer?.surname,
+        adulti: attrs.occupancy?.adults, bambini: attrs.occupancy?.children,
         raw_payload: attrs,
       };
 

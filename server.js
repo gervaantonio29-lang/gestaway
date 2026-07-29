@@ -979,6 +979,12 @@ app.get('/api/channex/iframe-token', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/debug/check-schema-channex-pren', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('channex_prenotazioni').select('*').limit(1);
+    res.json({ error: error?.message || null, colonne: data && data[0] ? Object.keys(data[0]) : [], sample: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // ────────────────────────────────────────────────────────────
 // AVVIO
 // ────────────────────────────────────────────────────────────
