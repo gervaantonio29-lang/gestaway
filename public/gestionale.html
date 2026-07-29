@@ -1921,7 +1921,7 @@ async function renderCalendario() {
         for (let c = colS; c <= colE; c++) usedRows[`${c}_${row}`] = true;
 
         const label = p.data_arrivo >= weekStart
-          ? `${p.ospite || 'Ospite'}`
+          ? `${p.note ? '📝' : ''}${p.ospite || 'Ospite'}${p.numero_ospiti ? ' 👥' + p.numero_ospiti : ''}`
           : '…';
         const leftPct = (colS / 7) * 100;
         const widthPct = (span / 7) * 100;
@@ -1932,7 +1932,7 @@ async function renderCalendario() {
 
         eventiHtml += `<div class="cal-event-span ${cls}"
           style="left:calc(${leftPct}% + 2px);width:calc(${widthPct}% - 4px);top:${topPx}px;border-radius:${borderRadius};${!isStartInWeek ? 'border-left:none;' : ''}"
-          title="${p.ospite||'Ospite'} · ${p.data_arrivo} → ${p.data_partenza}"
+          title="${p.ospite||'Ospite'} · ${p.data_arrivo} → ${p.data_partenza}${p.numero_ospiti ? ' · ' + p.numero_ospiti + ' ospit' + (p.numero_ospiti===1?'e':'i') : ''}${p.note ? ' · Nota: ' + (p.note+'').replace(/"/g,'&quot;') : ''}"
           onclick="editPren(${p.id})">${label}</div>`;
       });
 
