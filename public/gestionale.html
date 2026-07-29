@@ -1939,8 +1939,13 @@ async function renderCalendario() {
         : 1);
       const aptRowH = rowCount * 25 + 8;
 
-      weeksHtml += `<div style="position:relative;border-bottom:1px solid var(--border);background:var(--surface);min-height:${aptRowH}px">
-        <div style="position:absolute;top:2px;left:4px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;opacity:0.6">${apt.nome}</div>
+      const aptIndex = aptsVisibili.indexOf(apt);
+      const rowBg = aptIndex % 2 === 0 ? 'var(--surface)' : '#fafaf7';
+
+      // Il nome dell'appartamento e' una fascia piena sopra le prenotazioni
+      // (il padding-top fa partire le barre sotto, senza coprire il nome).
+      weeksHtml += `<div style="position:relative;border-bottom:2px solid var(--border);background:${rowBg};min-height:${aptRowH + 18}px;padding-top:16px">
+        <div style="position:absolute;top:0;left:0;right:0;padding:1px 6px;font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;background:var(--text)">${apt.nome}</div>
         <div style="position:relative;top:0;left:0;right:0;height:${aptRowH}px">${eventiHtml}</div>
       </div>`;
     });
