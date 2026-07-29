@@ -282,14 +282,14 @@ class ChannexBookings {
 
       // Salva SEMPRE in channex_prenotazioni (anche se cancelled) per avere le date
       const { error: cpErr } = await this.supabase.from('channex_prenotazioni').upsert(bookingData, { onConflict: 'booking_id' });
-      if (cpErr) console.error('[Bookings] Errore upsert channex_prenotazioni:', cpErr.message);
+      if (cpErr) throw new Error('Upsert channex_prenotazioni fallito: ' + cpErr.message);
 
       const appartamentoId = await this._getAppartamentoId(gPropertyId, attrs);
 
       if (status === 'cancelled') {
         // Cancella in prenotazioni (scoped per struttura)
         const { error: cancErr } = await this.supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('uid', 'channex_' + bookingId).eq('struttura_id', gPropertyId);
-        if (cancErr) console.error('[Bookings] Errore cancellazione prenotazione:', cancErr.message);
+        if (cancErr) throw new Error('Cancellazione prenotazione fallita: ' + cancErr.message);
 
         // Recupera le date — prima da attrs, poi da channex_prenotazioni se attrs non le ha
         let arrivo = attrs.arrival_date;
@@ -355,7 +355,7 @@ class ChannexBookings {
           appartamento_id: appartamentoId,
           note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
         }, { onConflict: 'struttura_id,uid' });
-        if (prenErr) console.error('[Bookings] Errore upsert prenotazione:', prenErr.message);
+        if (prenErr) throw new Error('Upsert prenotazione fallito: ' + prenErr.message);
         // Invia messaggio automatico di conferma per nuove prenotazioni, se la struttura ne ha configurato uno
         if (status === 'new') {
           try {
