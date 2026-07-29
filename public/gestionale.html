@@ -184,7 +184,7 @@
   .cal-cell.today .cal-day { background: var(--text); color: var(--surface); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
   .cal-day { font-size: 12.5px; font-weight: 500; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
   .cal-events-layer { position: absolute; top: 28px; left: 0; right: 0; pointer-events: none; }
-  .cal-event-span { position: absolute; height: 20px; font-size: 11px; line-height: 20px; padding: 0 6px; border-radius: 3px; cursor: pointer; pointer-events: all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .cal-event-span { position: absolute; height: 22px; font-size: 11px; line-height: 22px; padding: 0 6px; border-radius: 3px; cursor: pointer; pointer-events: all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
   .cal-event-span.airbnb { background: #FCEBEB; color: #A32D2D; border-left: 3px solid #F7A8A8; }
   .cal-event-span.booking { background: #E6F1FB; color: #185FA5; border-left: 3px solid #92C5F5; }
   .cal-event-span.manuale { background: #f1efe8; color: #5F5E5A; border-left: 3px solid #d4d0c8; }
@@ -1921,11 +1921,11 @@ async function renderCalendario() {
         for (let c = colS; c <= colE; c++) usedRows[`${c}_${row}`] = true;
 
         const label = p.data_arrivo >= weekStart
-          ? `${p.note ? '📝' : ''}${p.ospite || 'Ospite'}${p.numero_ospiti ? ' 👥' + p.numero_ospiti : ''}`
+          ? `${p.note ? '📝' : ''}${p.numero_ospiti ? p.numero_ospiti + ' ' : ''}${p.ospite || 'Ospite'}`
           : '…';
         const leftPct = (colS / 7) * 100;
         const widthPct = (span / 7) * 100;
-        const topPx = row * 22;
+        const topPx = row * 25;
         const isStartInWeek = p.data_arrivo >= weekStart;
         const isEndInWeek = p.data_partenza <= weekEnd;
         const borderRadius = isStartInWeek && isEndInWeek ? '3px' : isStartInWeek ? '3px 0 0 3px' : isEndInWeek ? '0 3px 3px 0' : '0';
@@ -1939,7 +1939,7 @@ async function renderCalendario() {
       const rowCount = Math.max(1, Object.keys(usedRows).length > 0
         ? Math.max(...Object.keys(usedRows).map(k => parseInt(k.split('_')[1]))) + 1
         : 1);
-      const aptRowH = rowCount * 22 + 8;
+      const aptRowH = rowCount * 25 + 8;
 
       weeksHtml += `<div style="position:relative;border-bottom:1px solid var(--border);background:var(--surface);min-height:${aptRowH}px">
         <div style="position:absolute;top:2px;left:4px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;opacity:0.6">${apt.nome}</div>
