@@ -284,6 +284,7 @@
     <div class="sidebar-logo"><img src="gestaway-logo-full.svg" alt="Gestaway"></div>
     <div class="nav-item" onclick="goTo('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
     <div class="nav-item" onclick="goTo('appartamenti')"><span class="nav-icon">🏢</span> Appartamenti</div>
+    <div class="nav-item" onclick="goTo('prezzi')"><span class="nav-icon">💰</span> Prezzi</div>
     <div class="nav-item" onclick="goTo('prenotazioni')"><span class="nav-icon">📅</span> Prenotazioni</div>
     <div class="nav-item" onclick="goTo('analitiche')"><span class="nav-icon">📈</span> Analitiche</div>
     <div class="nav-item" onclick="goTo('questura')"><span class="nav-icon">🚔</span> Questura</div>
@@ -314,6 +315,14 @@
         <button class="btn btn-primary" onclick="openAptModal()">+ Aggiungi</button>
       </div>
       <div id="apt-list"></div>
+    </div>
+
+    <!-- PREZZI -->
+    <div id="page-prezzi" class="page">
+      <div class="page-header">
+        <h1 class="page-title">💰 Prezzi</h1>
+      </div>
+      <div id="prezzi-list"></div>
     </div>
 
     <!-- PRENOTAZIONI -->
@@ -669,69 +678,6 @@
         <div class="form-group"><label>Device ID SwitchBot</label><input type="text" id="apt-switchbot" placeholder="ID dispositivo locker"></div>
         <div class="form-group"><label>Email proprietario</label><input type="email" id="apt-email" placeholder="tua@email.com"></div>
       </div>
-      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
-        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">💰 Prezzi e Mark-up</div>
-        <div class="form-row three">
-          <div class="form-group"><label>Prezzo base netto (€/notte)</label><input type="number" id="apt-prezzo-base" placeholder="50" oninput="calcolaPrezzi()" min="0" step="0.5"></div>
-          <div class="form-group"><label>IVA %</label><input type="number" id="apt-iva" placeholder="10" oninput="calcolaPrezzi()" min="0" max="100" step="1"></div>
-          <div class="form-group"><label>Rincaro sito %</label><input type="number" id="apt-markup-sito" placeholder="0" oninput="calcolaPrezzi()" min="0" step="1"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Mark-up Airbnb %</label><input type="number" id="apt-markup-airbnb" placeholder="45" oninput="calcolaPrezzi()" min="0" step="1"></div>
-          <div class="form-group"><label>Mark-up Booking %</label><input type="number" id="apt-markup-booking" placeholder="20" oninput="calcolaPrezzi()" min="0" step="1"></div>
-        </div>
-        <div id="apt-prezzi-calcolati" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;margin-top:4px">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Prezzi calcolati per notte:</div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap">
-            <div><span style="font-size:11px;color:var(--muted)">🌐 Sito</span><br><strong id="calc-sito" style="font-size:18px;color:var(--green)">—</strong></div>
-            <div><span style="font-size:11px;color:var(--muted)">🏠 Airbnb</span><br><strong id="calc-airbnb" style="font-size:18px;color:#A32D2D">—</strong></div>
-            <div><span style="font-size:11px;color:var(--muted)">🏨 Booking</span><br><strong id="calc-booking" style="font-size:18px;color:#185FA5">—</strong></div>
-          </div>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
-        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🌡️ Stagioni (mesi suggeriti per zona Como)</div>
-        <div class="form-row three">
-          <div class="form-group">
-            <label>Bassa stagione — rincaro %</label>
-            <input type="number" id="apt-rincaro-bassa" placeholder="0" min="0" step="1" oninput="calcolaPrezzi()">
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">Nov · Dic · Gen · Feb</div>
-          </div>
-          <div class="form-group">
-            <label>Media stagione — rincaro %</label>
-            <input type="number" id="apt-rincaro-media" placeholder="15" min="0" step="1" oninput="calcolaPrezzi()">
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">Mar · Apr · Ott</div>
-          </div>
-          <div class="form-group">
-            <label>Alta stagione — rincaro %</label>
-            <input type="number" id="apt-rincaro-alta" placeholder="40" min="0" step="1" oninput="calcolaPrezzi()">
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">Mag · Giu · Lug · Ago · Set</div>
-          </div>
-        </div>
-        <div id="apt-prezzi-stagioni" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;margin-top:4px">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Prezzi per stagione (sito, con IVA e rincaro):</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-            <div style="text-align:center;background:white;border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">❄️ Bassa</div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Sito</div><strong id="stagione-bassa-sito" style="color:var(--green)">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Airbnb</div><strong id="stagione-bassa-airbnb" style="color:#A32D2D">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Booking</div><strong id="stagione-bassa-booking" style="color:#185FA5">—</strong>
-            </div>
-            <div style="text-align:center;background:white;border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">🌤️ Media</div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Sito</div><strong id="stagione-media-sito" style="color:var(--green)">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Airbnb</div><strong id="stagione-media-airbnb" style="color:#A32D2D">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Booking</div><strong id="stagione-media-booking" style="color:#185FA5">—</strong>
-            </div>
-            <div style="text-align:center;background:white;border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">☀️ Alta</div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Sito</div><strong id="stagione-alta-sito" style="color:var(--green)">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Airbnb</div><strong id="stagione-alta-airbnb" style="color:#A32D2D">—</strong>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Booking</div><strong id="stagione-alta-booking" style="color:#185FA5">—</strong>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="form-row full"><div class="form-group"><label>Note</label><textarea id="apt-note" placeholder="Note..."></textarea></div></div>
     </div>
     <div class="modal-footer">
@@ -973,6 +919,7 @@ function goTo(page) {
   currentPage = page;
   if (page === 'dashboard') loadDashboard();
   if (page === 'appartamenti') renderAppartamenti();
+  if (page === 'prezzi') renderPrezzi();
   if (page === 'prenotazioni') { setView('calendario'); }
   if (page === 'channex') loadChannexPage();
   if (page === 'messaggi') loadThreads();
@@ -1130,62 +1077,11 @@ async function scaricaRoss1000() {
   }
 }
 
-function calcolaPrezzi() {
-  const base = parseFloat(document.getElementById('apt-prezzo-base').value) || 0;
-  const iva = parseFloat(document.getElementById('apt-iva').value) || 0;
-  const markupSito = parseFloat(document.getElementById('apt-markup-sito').value) || 0;
-  const markupAirbnb = parseFloat(document.getElementById('apt-markup-airbnb').value) || 0;
-  const markupBooking = parseFloat(document.getElementById('apt-markup-booking').value) || 0;
-  const rBassa = parseFloat(document.getElementById('apt-rincaro-bassa').value) || 0;
-  const rMedia = parseFloat(document.getElementById('apt-rincaro-media').value) || 0;
-  const rAlta = parseFloat(document.getElementById('apt-rincaro-alta').value) || 0;
-
-  if (!base) {
-    document.getElementById('apt-prezzi-calcolati').style.display = 'none';
-  document.getElementById('apt-prezzi-stagioni').style.display = 'none';
-  document.getElementById('apt-iva').value = '10';
-  document.getElementById('apt-rincaro-media').value = '15';
-  document.getElementById('apt-rincaro-alta').value = '40';
-    document.getElementById('apt-prezzi-stagioni').style.display = 'none';
-    return;
-  }
-
-  const baseConIva = base * (1 + iva / 100);
-  const prezzoSito = (baseConIva * (1 + markupSito / 100)).toFixed(2);
-  const prezzoAirbnb = (baseConIva * (1 + markupAirbnb / 100)).toFixed(2);
-  const prezzoBooking = (baseConIva * (1 + markupBooking / 100)).toFixed(2);
-  document.getElementById('calc-sito').textContent = '€' + prezzoSito + (markupSito ? ' (+' + markupSito + '%)' : '');
-  document.getElementById('calc-airbnb').textContent = '€' + prezzoAirbnb + ' (+' + markupAirbnb + '%)';
-  document.getElementById('calc-booking').textContent = '€' + prezzoBooking + ' (+' + markupBooking + '%)';
-  document.getElementById('apt-prezzi-calcolati').style.display = 'block';
-
-  // Stagioni
-  const stagioni = [
-    { key: 'bassa', r: rBassa },
-    { key: 'media', r: rMedia },
-    { key: 'alta', r: rAlta }
-  ];
-  stagioni.forEach(s => {
-    const baseStagione = base * (1 + s.r / 100); // rincaro stagionale sul base netto
-    const baseStagioneConIva = baseStagione * (1 + iva / 100); // poi IVA
-    document.getElementById('stagione-' + s.key + '-sito').textContent = '€' + (baseStagioneConIva * (1 + markupSito / 100)).toFixed(2);
-    document.getElementById('stagione-' + s.key + '-airbnb').textContent = '€' + (baseStagioneConIva * (1 + markupAirbnb / 100)).toFixed(2);
-    document.getElementById('stagione-' + s.key + '-booking').textContent = '€' + (baseStagioneConIva * (1 + markupBooking / 100)).toFixed(2);
-  });
-  document.getElementById('apt-prezzi-stagioni').style.display = 'block';
-}
-
 function openAptModal() {
   document.getElementById('apt-id').value = '';
   document.getElementById('apt-modal-title').textContent = 'Nuovo appartamento';
-  ['apt-nome','apt-indirizzo','apt-ical-airbnb','apt-ical-booking','apt-switchbot','apt-email','apt-note','apt-prezzo-base','apt-iva','apt-markup-sito','apt-markup-airbnb','apt-markup-booking','apt-rincaro-bassa','apt-rincaro-media','apt-rincaro-alta'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('apt-prezzi-calcolati').style.display = 'none';
-  document.getElementById('apt-prezzi-stagioni').style.display = 'none';
-  document.getElementById('apt-iva').value = '10';
-  document.getElementById('apt-rincaro-media').value = '15';
-  document.getElementById('apt-rincaro-alta').value = '40';
+  ['apt-nome','apt-indirizzo','apt-ical-airbnb','apt-ical-booking','apt-switchbot','apt-email','apt-note'].forEach(id => document.getElementById(id).value = '');
   openModal('modal-apt');
-  setTimeout(calcolaPrezzi, 100);
 }
 
 function editApt(id) {
@@ -1199,17 +1095,127 @@ function editApt(id) {
   document.getElementById('apt-switchbot').value = a.switchbot_device_id || '';
   document.getElementById('apt-email').value = a.email_proprietario || '';
   document.getElementById('apt-note').value = a.note || '';
-  document.getElementById('apt-prezzo-base').value = a.prezzo_base || '';
-  document.getElementById('apt-iva').value = a.iva_percent || '';
-  document.getElementById('apt-markup-sito').value = a.markup_sito || '';
-  document.getElementById('apt-markup-airbnb').value = a.markup_airbnb || '';
-  document.getElementById('apt-markup-booking').value = a.markup_booking || '';
-  document.getElementById('apt-rincaro-bassa').value = a.rincaro_bassa || '';
-  document.getElementById('apt-rincaro-media').value = a.rincaro_media || '';
-  document.getElementById('apt-rincaro-alta').value = a.rincaro_alta || '';
-  setTimeout(calcolaPrezzi, 50);
   openModal('modal-apt');
-  setTimeout(calcolaPrezzi, 100);
+}
+
+// ── Prezzi (pagina centralizzata) ───────────────────────────────────────────
+async function renderPrezzi() {
+  const lista = await api('/api/appartamenti');
+  const el = document.getElementById('prezzi-list');
+  if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="icon">💰</div>Nessun appartamento. Aggiungine uno prima dalla sezione Appartamenti.</div>'; return; }
+  el.innerHTML = lista.map(a => `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <div class="card-title">${a.nome}</div>
+      </div>
+      <div style="padding:0 1.25rem 1.25rem">
+        <div class="form-row three">
+          <div class="form-group"><label>Prezzo base netto (€/notte)</label><input type="number" id="pz-base-${a.id}" value="${a.prezzo_base || ''}" placeholder="50" oninput="calcolaPrezziCard(${a.id})" min="0" step="0.5"></div>
+          <div class="form-group"><label>IVA %</label><input type="number" id="pz-iva-${a.id}" value="${a.iva_percent ?? 10}" oninput="calcolaPrezziCard(${a.id})" min="0" max="100" step="1"></div>
+          <div class="form-group"><label>Rincaro sito %</label><input type="number" id="pz-sito-${a.id}" value="${a.markup_sito ?? 0}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Mark-up Airbnb %</label><input type="number" id="pz-airbnb-${a.id}" value="${a.markup_airbnb ?? 45}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
+          <div class="form-group"><label>Mark-up Booking %</label><input type="number" id="pz-booking-${a.id}" value="${a.markup_booking ?? 20}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
+        </div>
+        <div id="pz-calcolati-${a.id}" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Prezzi calcolati per notte:</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <div><span style="font-size:11px;color:var(--muted)">🌐 Sito</span><br><strong id="pz-calc-sito-${a.id}" style="font-size:18px;color:var(--green)">—</strong></div>
+            <div><span style="font-size:11px;color:var(--muted)">🏠 Airbnb</span><br><strong id="pz-calc-airbnb-${a.id}" style="font-size:18px;color:#A32D2D">—</strong></div>
+            <div><span style="font-size:11px;color:var(--muted)">🏨 Booking</span><br><strong id="pz-calc-booking-${a.id}" style="font-size:18px;color:#185FA5">—</strong></div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:14px 0 10px;padding-top:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🌡️ Stagioni (mesi suggeriti per zona Como)</div>
+          <div class="form-row three">
+            <div class="form-group">
+              <label>Bassa stagione — rincaro %</label>
+              <input type="number" id="pz-bassa-${a.id}" value="${a.rincaro_bassa ?? 0}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Nov · Dic · Gen · Feb</div>
+            </div>
+            <div class="form-group">
+              <label>Media stagione — rincaro %</label>
+              <input type="number" id="pz-media-${a.id}" value="${a.rincaro_media ?? 15}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Mar · Apr · Ott</div>
+            </div>
+            <div class="form-group">
+              <label>Alta stagione — rincaro %</label>
+              <input type="number" id="pz-alta-${a.id}" value="${a.rincaro_alta ?? 40}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Mag · Giu · Lug · Ago · Set</div>
+            </div>
+          </div>
+          <div id="pz-stagioni-${a.id}" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;margin-top:4px">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Prezzi per stagione (sito, con IVA e rincaro):</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+              ${['bassa','media','alta'].map(k => `
+              <div style="text-align:center;background:white;border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border)">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${k === 'bassa' ? '❄️ Bassa' : k === 'media' ? '🌤️ Media' : '☀️ Alta'}</div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Sito</div><strong id="pz-stag-${k}-sito-${a.id}" style="color:var(--green)">—</strong>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Airbnb</div><strong id="pz-stag-${k}-airbnb-${a.id}" style="color:#A32D2D">—</strong>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px">Booking</div><strong id="pz-stag-${k}-booking-${a.id}" style="color:#185FA5">—</strong>
+              </div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="card-actions" style="padding:0;margin-top:10px">
+          <button class="btn btn-sm btn-primary" onclick="salvaPrezzi(${a.id})">💾 Salva prezzi</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  lista.forEach(a => calcolaPrezziCard(a.id));
+}
+
+function calcolaPrezziCard(id) {
+  const val = idSuffix => parseFloat(document.getElementById(idSuffix + id).value) || 0;
+  const base = val('pz-base-');
+  const iva = val('pz-iva-');
+  const markupSito = val('pz-sito-');
+  const markupAirbnb = val('pz-airbnb-');
+  const markupBooking = val('pz-booking-');
+  const rBassa = val('pz-bassa-');
+  const rMedia = val('pz-media-');
+  const rAlta = val('pz-alta-');
+
+  if (!base) {
+    document.getElementById('pz-calcolati-' + id).style.display = 'none';
+    document.getElementById('pz-stagioni-' + id).style.display = 'none';
+    return;
+  }
+
+  const baseConIva = base * (1 + iva / 100);
+  document.getElementById('pz-calc-sito-' + id).textContent = '€' + (baseConIva * (1 + markupSito / 100)).toFixed(2) + (markupSito ? ' (+' + markupSito + '%)' : '');
+  document.getElementById('pz-calc-airbnb-' + id).textContent = '€' + (baseConIva * (1 + markupAirbnb / 100)).toFixed(2) + ' (+' + markupAirbnb + '%)';
+  document.getElementById('pz-calc-booking-' + id).textContent = '€' + (baseConIva * (1 + markupBooking / 100)).toFixed(2) + ' (+' + markupBooking + '%)';
+  document.getElementById('pz-calcolati-' + id).style.display = 'block';
+
+  const stagioni = [{ key: 'bassa', r: rBassa }, { key: 'media', r: rMedia }, { key: 'alta', r: rAlta }];
+  stagioni.forEach(s => {
+    const baseStagione = base * (1 + s.r / 100);
+    const baseStagioneConIva = baseStagione * (1 + iva / 100);
+    document.getElementById('pz-stag-' + s.key + '-sito-' + id).textContent = '€' + (baseStagioneConIva * (1 + markupSito / 100)).toFixed(2);
+    document.getElementById('pz-stag-' + s.key + '-airbnb-' + id).textContent = '€' + (baseStagioneConIva * (1 + markupAirbnb / 100)).toFixed(2);
+    document.getElementById('pz-stag-' + s.key + '-booking-' + id).textContent = '€' + (baseStagioneConIva * (1 + markupBooking / 100)).toFixed(2);
+  });
+  document.getElementById('pz-stagioni-' + id).style.display = 'block';
+}
+
+async function salvaPrezzi(id) {
+  const val = idSuffix => parseFloat(document.getElementById(idSuffix + id).value) || null;
+  const data = {
+    prezzo_base: val('pz-base-'),
+    iva_percent: val('pz-iva-'),
+    markup_sito: val('pz-sito-'),
+    markup_airbnb: val('pz-airbnb-'),
+    markup_booking: val('pz-booking-'),
+    rincaro_bassa: val('pz-bassa-'),
+    rincaro_media: val('pz-media-'),
+    rincaro_alta: val('pz-alta-'),
+  };
+  const r = await api('/api/appartamenti/' + id, 'PUT', data);
+  if (r?.error) { toast('Errore: ' + r.error, 'error'); return; }
+  toast('✅ Prezzi salvati');
 }
 
 async function salvaAppartamento() {
@@ -1222,14 +1228,6 @@ async function salvaAppartamento() {
     switchbot_device_id: document.getElementById('apt-switchbot').value,
     email_proprietario: document.getElementById('apt-email').value,
     note: document.getElementById('apt-note').value,
-    prezzo_base: parseFloat(document.getElementById('apt-prezzo-base').value) || null,
-    iva_percent: parseFloat(document.getElementById('apt-iva').value) || null,
-    markup_sito: parseFloat(document.getElementById('apt-markup-sito').value) || null,
-    markup_airbnb: parseFloat(document.getElementById('apt-markup-airbnb').value) || null,
-    markup_booking: parseFloat(document.getElementById('apt-markup-booking').value) || null,
-    rincaro_bassa: parseFloat(document.getElementById('apt-rincaro-bassa').value) || null,
-    rincaro_media: parseFloat(document.getElementById('apt-rincaro-media').value) || null,
-    rincaro_alta: parseFloat(document.getElementById('apt-rincaro-alta').value) || null,
   };
   if (id) await api('/api/appartamenti/' + id, 'PUT', data);
   else await api('/api/appartamenti', 'POST', data);
