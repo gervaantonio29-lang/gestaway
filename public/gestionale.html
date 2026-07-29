@@ -1487,13 +1487,16 @@ function filtraQuestura(tipo) {
 function disegnaListaQuestura() {
   const el = document.getElementById('questura-list');
   const canaleChannex = p => p.uid && p.uid.startsWith('channex_');
+  const oggi = dateToStr(new Date());
   const filtrate = questuraCache.filter(({ p }) => {
+    const futura = p.data_arrivo > oggi;
     if (questuraFiltroAttivo === 'registrate') return !!p.questura_inviata;
-    if (questuraFiltroAttivo === 'da-registrare') return !p.questura_inviata;
+    // "Da registrare" = gia' arrivate e non ancora registrate — le future non sono
+    // ancora "in scadenza", solo non ancora processate, non vanno mischiate qui.
+    if (questuraFiltroAttivo === 'da-registrare') return !futura && !p.questura_inviata;
     return true;
   });
   if (!filtrate.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🚔</div>Nessuna prenotazione in questa vista</div>'; return; }
-  const oggi = dateToStr(new Date());
   el.innerHTML = filtrate.map(({ p, ospiti }) => {
     const futura = p.data_arrivo > oggi;
     const badge = futura
