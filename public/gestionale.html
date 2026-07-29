@@ -325,7 +325,7 @@
             <button class="view-btn active" id="btn-view-cal" onclick="setView('calendario')">📅 Calendario</button>
           </div>
           <button class="btn btn-primary" onclick="openPrenModal()">+ Aggiungi</button>
-          <button class="btn" onclick="impostaMinStayWeekend()">🔒 Min. 2 notti weekend</button>
+          <button class="btn" onclick="sincronizzaTuttoChannex()">🔄 Sincronizza tutto</button>
         </div>
         <h1 class="page-title" style="font-size:16px;font-weight:500;color:var(--muted)">Prenotazioni</h1>
       </div>
@@ -399,7 +399,7 @@
     <div id="page-channex" class="page">
       <div class="page-header">
         <h1 class="page-title">🔗 Channel Manager</h1>
-        <button class="btn btn-primary" onclick="syncChannexFull()">🔄 Full Sync Channex</button>
+        <button class="btn btn-primary" onclick="sincronizzaTuttoChannex()">🔄 Sincronizza tutto</button>
       </div>
       <div class="section-title">Struttura collegata</div>
       <div class="card" style="margin-bottom:1.5rem">
@@ -410,8 +410,8 @@
         </div>
       </div>
       <div id="channex-connetti-form" class="card" style="padding:1.25rem;margin-bottom:1.5rem;display:none">
-        <div class="section-title" style="margin-top:0">Collega la struttura a Channex</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Crea la property su Channex per attivare la sincronizzazione con Booking.com e Airbnb.</div>
+        <div class="section-title" style="margin-top:0">Collega la struttura a Booking.com e Airbnb</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Attiva la sincronizzazione automatica di prenotazioni, prezzi e disponibilità.</div>
         <div class="form-row">
           <div class="form-group"><label>Nome struttura</label><input type="text" id="cc-titolo" placeholder="Es. B&B Rossi"></div>
           <div class="form-group"><label>Valuta</label><input type="text" id="cc-valuta" placeholder="EUR" value="EUR" maxlength="3"></div>
@@ -427,11 +427,11 @@
         <div class="form-row">
           <div class="form-group" style="flex:1"><label>Indirizzo</label><input type="text" id="cc-indirizzo" placeholder="Via Roma 1"></div>
         </div>
-        <button class="btn btn-primary" onclick="connettiChannex()">🔗 Collega a Channex</button>
+        <button class="btn btn-primary" onclick="connettiChannex()">🔗 Collega</button>
       </div>
       <div class="section-title">Tariffe e Restrizioni</div>
       <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Imposta prezzi e restrizioni per periodo e invia a Channex → Booking.com e Airbnb.</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Imposta prezzi e restrizioni per periodo e invia a Booking.com e Airbnb.</div>
         <div class="form-row">
           <div class="form-group"><label>Rate plan</label>
             <select id="ch-rate-plan">
@@ -453,7 +453,7 @@
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ch-ctd"> Chiuso alla partenza</label>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="inviaRestrizioniChannex()" style="margin-top:4px">📤 Invia a Channex</button>
+        <button class="btn btn-primary" onclick="inviaRestrizioniChannex()" style="margin-top:4px">📤 Invia</button>
       </div>
       <div class="section-title">Minimo soggiorno per giorno della settimana (permanente)</div>
       <div class="card" style="padding:1.25rem;margin-bottom:1.5rem">
@@ -469,12 +469,7 @@
         </div>
         <button class="btn btn-primary" onclick="salvaMinStaySettimanale()" style="margin-top:8px">💾 Salva pattern settimanale</button>
       </div>
-      <div class="section-title">Azioni rapide</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1.5rem">
-        <button class="btn btn-primary" onclick="syncChannexFull()">🔄 Full Sync (500 giorni)</button>
-        <button class="btn" onclick="loadChannexBookingsPage()">📥 Aggiorna prenotazioni</button>
-      </div>
-      <div class="section-title">Ultime prenotazioni da Channex</div>
+      <div class="section-title">Ultime prenotazioni ricevute</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Ospite</th><th>Arrivo</th><th>Partenza</th><th>Canale</th><th>Stato</th><th>Importo</th></tr></thead>
@@ -543,7 +538,7 @@
       <div class="card" style="padding:1.25rem;margin-bottom:1rem">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div>
-            <div style="font-weight:500;font-size:14px">Messaggi automatici via Channex</div>
+            <div style="font-weight:500;font-size:14px">Messaggi automatici</div>
             <div style="font-size:12px;color:var(--muted);margin-top:3px">Conferma, pre-arrivo (3gg prima), check-out. Disabilita se usi già i messaggi automatici di Booking.com/Airbnb.</div>
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -2386,29 +2381,22 @@ async function getRatePlansDinamici() {
   const r = await api('/api/channex/rate-plans');
   return ((r && r.data) || []).map(p => ({ id: p.id, nome: p.attributes?.title || p.id }));
 }
-async function impostaMinStayWeekend() {
-  if (!confirm('Impostare minimo 2 notti per arrivi di venerdì, sabato e domenica su tutti i rate plan collegati?')) return;
-  toast('Impostazione in corso...');
-  const pattern = [1,1,1,1,2,2,2]; // Lun,Mar,Mer,Gio=1 · Ven,Sab,Dom=2
-  const ratePlans = await getRatePlansDinamici();
-  if (!ratePlans.length) { toast('Nessun rate plan collegato a Channex.', 'error'); return; }
-  let ok = 0, errori = [];
-  for (const rp of ratePlans) {
-    try {
-      const r = await api('/api/channex/rate-plans/' + rp.id + '/restrictions', 'PUT', { min_stay_arrival: pattern });
-      if (r.ok) ok++; else errori.push(rp.nome + ': ' + (r.error || 'errore'));
-    } catch(e) { errori.push(rp.nome + ': ' + e.message); }
-  }
-  if (errori.length) toast('⚠️ Errori: ' + errori.join(', '), 'error');
-  else toast('✅ Min. 2 notti weekend impostato su ' + ok + ' rate plan!');
-}
-
 // ── Channel Manager ─────────────────────────────────────────────────────────
-async function syncChannexFull() {
-  toast('Full Sync Channex in corso...');
-  const r = await api('/api/channex/full-sync', 'POST');
-  if (r.ok) toast('✅ Full Sync Channex completato!');
-  else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
+async function sincronizzaTuttoChannex() {
+  toast('Sincronizzazione in corso, può richiedere qualche secondo...');
+  try {
+    const r1 = await api('/api/channex/full-sync', 'POST');
+    if (!r1.ok) { toast('❌ Errore invio disponibilità: ' + (r1.errore || 'sconosciuto'), 'error'); return; }
+    await api('/api/channex/poll-bookings', 'POST');
+    await api('/api/channex/riallinea-stato', 'POST');
+    const rVerifica = await api('/api/channex/verifica-allineamento', 'POST');
+    await loadChannexBookingsPage();
+    if (rVerifica?.discrepanze) {
+      toast(`⚠️ Sincronizzato — trovate ${rVerifica.discrepanze} discrepanze`, 'error');
+    } else {
+      toast('✅ Sincronizzazione completata, tutto allineato');
+    }
+  } catch(e) { toast('Errore: ' + e.message, 'error'); }
 }
 async function loadChannexConnectionCard() {
   const card = document.getElementById('channex-connection-card');
@@ -2416,7 +2404,7 @@ async function loadChannexConnectionCard() {
   try {
     const detail = await api('/api/channex/property-detail');
     if (!detail || detail.error || detail.errore) {
-      card.innerHTML = '<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">Collega la tua struttura a Channex per attivare il Channel Manager.</div></div><span class="badge badge-amber">Non connessa</span>';
+      card.innerHTML = '<div><div class="card-title">Struttura non ancora collegata</div><div class="card-sub">Collega la tua struttura per attivare il Channel Manager.</div></div><span class="badge badge-amber">Non connessa</span>';
       form.style.display = '';
       return;
     }
@@ -2439,11 +2427,11 @@ async function connettiChannex() {
   if (!titolo || !valuta || !timezone || !paese || !citta || !cap || !indirizzo) {
     toast('Compila tutti i campi', 'error'); return;
   }
-  toast('Collegamento a Channex in corso...');
+  toast('Collegamento in corso...');
   try {
     const r = await api('/api/channex/connetti', 'POST', { titolo, valuta, timezone, paese, citta, cap, indirizzo });
     if (r.ok) {
-      toast('✅ Struttura collegata a Channex!');
+      toast('✅ Struttura collegata!');
       await loadChannexPage();
     } else {
       toast('❌ Errore: ' + (r.error || 'sconosciuto'), 'error');
@@ -2469,14 +2457,15 @@ async function loadChannexPage() {
 }
 async function loadChannexBookingsPage() {
   const tbody = document.getElementById('channex-bookings-tbody');
+  if (!tbody) return; // la tabella esiste solo nella pagina Channel Manager
   try {
     const data = await api('/api/channex/prenotazioni?limit=20');
-    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione ricevuta da Channex</td></tr>'; return; }
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Nessuna prenotazione trovata</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `<tr>
       <td><strong>${p.ospite_nome || '—'} ${p.ospite_cognome || ''}</strong></td>
       <td>${formatDate(p.arrivo)}</td>
       <td>${formatDate(p.partenza)}</td>
-      <td><span class="badge badge-blue">${p.ota_name || 'Channex'}</span></td>
+      <td><span class="badge badge-blue">${p.ota_name || 'N/D'}</span></td>
       <td><span class="badge ${p.stato === 'cancelled' ? 'badge-red' : p.stato === 'new' ? 'badge-green' : 'badge-amber'}">${p.stato}</span></td>
       <td style="text-align:right">${p.importo ? '€' + parseFloat(p.importo).toFixed(2) : '—'}</td>
     </tr>`).join('');
@@ -2496,7 +2485,7 @@ async function inviaRestrizioniChannex() {
   const ctd = document.getElementById('ch-ctd').checked;
   if (!dateFrom || !dateTo) { toast('Inserisci data inizio e fine', 'error'); return; }
   if (dateTo <= dateFrom) { toast('La data fine deve essere successiva alla data inizio', 'error'); return; }
-  toast('Invio restrizioni a Channex...');
+  toast('Invio in corso...');
   const values = [{
     rate_plan_id: ratePlan,
     date_from: dateFrom,
@@ -2510,7 +2499,7 @@ async function inviaRestrizioniChannex() {
     closed_to_departure: ctd,
   }];
   const r = await api('/api/channex/push-ari', 'POST', { tipo: 'restrictions', values });
-  if (r.ok) toast('✅ Restrizioni inviate a Channex!');
+  if (r.ok) toast('✅ Restrizioni inviate!');
   else toast('❌ Errore: ' + (r.errore || 'sconosciuto'), 'error');
 }
 async function salvaMinStaySettimanale() {
@@ -2518,7 +2507,7 @@ async function salvaMinStaySettimanale() {
   // Array Lun-Dom (indice 0=Lun...6=Dom) come richiesto da Channex
   const pattern = [0,1,2,3,4,5,6].map(i => parseInt(document.getElementById('ws-' + i).value) || 1);
   const ratePlans = (await getRatePlansDinamici()).map(rp => rp.id);
-  if (!ratePlans.length) { toast('Nessun rate plan collegato a Channex.', 'error'); return; }
+  if (!ratePlans.length) { toast('Nessun rate plan collegato.', 'error'); return; }
   // 1) Salva il pattern di default sul rate plan (vale per date oltre i 500gg già impostati)
   let ok = 0, errori = [];
   for (const rp of ratePlans) {

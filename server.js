@@ -842,6 +842,69 @@ app.post('/api/channex/poll-bookings', async (req, res) => {
   try { await channex.bookings.poll(); res.json({ ok: true }); }
   catch (err) { res.status(500).json({ errore: err.message }); }
 });
+async function tuttiIBookingChannex(propertyId) {
+  let tutti = [], pagina = 1, altre = true;
+  while (altre) {
+    const r = await channex.client.get(`/bookings?filter[property_id]=${propertyId}&page[size]=100&page[number]=${pagina}`);
+    const lotto = r?.data || [];
+    tutti = tutti.concat(lotto);
+    altre = lotto.length === 100;
+    pagina++;
+  }
+  return tutti;
+}
+// Riallinea lo stato locale con quello reale su Booking.com/Airbnb — la feed di
+// revision a volte perde una cancellazione, quindi leggiamo lo stato attuale
+// direttamente dai booking, che e' sempre la verita'.
+app.post('/api/channex/riallinea-stato', async (req, res) => {
+  try {
+    const propertyId = await getPropertyId(req.strutturaId);
+    if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata.' });
+    const tutti = await tuttiIBookingChannex(propertyId);
+    const corrette = [];
+    for (const b of tutti) {
+      const statoReale = b.attributes?.status === 'cancelled' ? 'cancellata' : 'confermata';
+      if (statoReale !== 'cancellata') continue;
+      const uid = 'channex_' + b.id;
+      const { data: locale } = await supabase.from('prenotazioni').select('id, stato').eq('uid', uid).eq('struttura_id', req.strutturaId).maybeSingle();
+      if (locale && locale.stato !== 'cancellata') {
+        await supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('id', locale.id);
+        corrette.push({ uid, da: locale.stato, a: statoReale });
+      }
+    }
+    res.json({ ok: true, controllate: tutti.length, corrette });
+  } catch (err) { res.status(500).json({ errore: err.message }); }
+});
+// Confronta tutte le prenotazioni tra Booking.com/Airbnb e il gestionale: date
+// diverse, cancellazioni non recepite, prenotazioni mai arrivate nel gestionale.
+app.post('/api/channex/verifica-allineamento', async (req, res) => {
+  try {
+    const propertyId = await getPropertyId(req.strutturaId);
+    if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata.' });
+    const tutti = await tuttiIBookingChannex(propertyId);
+    const { data: prens } = await supabase.from('prenotazioni').select('uid, data_arrivo, data_partenza, stato').eq('struttura_id', req.strutturaId).like('uid', 'channex_%');
+    const locali = {};
+    (prens || []).forEach(p => { locali[p.uid.replace('channex_', '')] = p; });
+    const problemi = [];
+    for (const b of tutti) {
+      const attrs = b.attributes || {};
+      const nome = `${attrs.customer?.name || ''} ${attrs.customer?.surname || ''}`.trim() || 'Ospite sconosciuto';
+      const locale = locali[b.id];
+      const cancellataSuChannex = attrs.status === 'cancelled';
+      if (!locale) {
+        if (!cancellataSuChannex) problemi.push(`Mancante nel gestionale: ${nome} (${attrs.arrival_date} → ${attrs.departure_date})`);
+        continue;
+      }
+      if (!cancellataSuChannex && (locale.data_arrivo !== attrs.arrival_date || locale.data_partenza !== attrs.departure_date)) {
+        problemi.push(`Date diverse: ${nome} — Booking.com/Airbnb: ${attrs.arrival_date} → ${attrs.departure_date}, gestionale: ${locale.data_arrivo} → ${locale.data_partenza}`);
+      }
+      if (cancellataSuChannex && locale.stato !== 'cancellata') {
+        problemi.push(`Cancellata su Booking.com/Airbnb ma non sul gestionale: ${nome}`);
+      }
+    }
+    res.json({ ok: true, discrepanze: problemi.length, dettagli: problemi });
+  } catch (e) { res.status(500).json({ errore: e.message }); }
+});
 
 // ─── MESSAGGI CHANNEX ───────────────────────────────────────────
 app.get('/api/messaggi/threads', async (req, res) => {
