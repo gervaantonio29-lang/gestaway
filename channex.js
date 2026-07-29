@@ -356,6 +356,34 @@ class ChannexBookings {
           note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
         }, { onConflict: 'struttura_id,uid' });
         if (prenErr) throw new Error('Upsert prenotazione fallito: ' + prenErr.message);
+
+        // Chiude subito le date appena prenotate su tutti i canali, per evitare
+        // overbooking nella finestra fra questa prenotazione e il prossimo sync periodico.
+        if (attrs.arrival_date && attrs.departure_date) {
+          try {
+            const { data: rateMappings } = await this.supabase
+              .from('channex_rate_mappings')
+              .select('channex_rate_plan_id')
+              .eq('gestaway_property_id', gPropertyId);
+            if (rateMappings?.length) {
+              const values = rateMappings.map(r => ({
+                property_id: attrs.property_id,
+                rate_plan_id: r.channex_rate_plan_id,
+                date_from: attrs.arrival_date,
+                date_to: attrs.departure_date,
+                stop_sell: true,
+                min_stay_arrival: 1, min_stay_through: 1, max_stay: 30,
+                closed_to_arrival: false, closed_to_departure: false,
+              }));
+              await this.outbox.enqueue('restrictions', { values }, gPropertyId);
+              await this.outbox.flush();
+              console.log(`[Bookings] ✅ Date ${attrs.arrival_date} → ${attrs.departure_date} chiuse su tutti i canali (nuova prenotazione ${bookingId})`);
+            }
+          } catch (stopErr) {
+            console.error('[Bookings] Errore chiusura date su nuova prenotazione:', stopErr.message);
+          }
+        }
+
         // Invia messaggio automatico di conferma per nuove prenotazioni, se la struttura ne ha configurato uno
         if (status === 'new') {
           try {
