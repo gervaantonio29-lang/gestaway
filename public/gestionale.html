@@ -301,7 +301,6 @@
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
         <button class="btn" onclick="syncTutti()">🔄 Sincronizza tutto</button>
-        <button class="btn" onclick="pulisciNotAvailable()">🧹 Rimuovi blocchi</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
       <div class="section-title">Prossimi arrivi</div>
@@ -987,12 +986,6 @@ async function cancellaPren(id) {
   loadDashboard();
   if (currentView === 'calendario') renderCalendario();
   else renderPrenotazioni();
-}
-
-async function pulisciNotAvailable() {
-  const r = await api('/api/pulizia/not-available', 'POST');
-  toast(`Rimossi ${r.rimossi} blocchi "Not available" e "Closed"`);
-  loadDashboard();
 }
 
 async function syncTutti() {
