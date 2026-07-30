@@ -32,6 +32,13 @@ const supabase = createClient(
   { realtime: { transport: ws } }
 );
 
+const channex = createChannexServices(supabase);
+if (process.env.CHANNEX_API_KEY) {
+  channex.bookings.startPolling();
+} else {
+  console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
+}
+
 // Stripe webhook ha bisogno del raw body PRIMA di express.json()
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   let event;
@@ -45,11 +52,6 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       await provisionaStruttura(session);
-    } else if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      const { error } = await supabase.from('strutture').update({ stato: 'cancellato' }).eq('stripe_subscription_id', subscription.id);
-      if (error) console.error('[Stripe Webhook] Errore disattivazione struttura:', error.message);
-      else console.log(`[Stripe Webhook] Struttura disattivata per subscription ${subscription.id}`);
     }
     res.json({ received: true });
   } catch (err) {
@@ -81,11 +83,6 @@ async function requireAuth(req, res, next) {
   if (new Date(sessione.scade_il) < new Date()) {
     await supabase.from('sessioni').delete().eq('token', token);
     return res.status(401).json({ error: 'Sessione scaduta.' });
-  }
-  const { data: struttura } = await supabase.from('strutture').select('stato').eq('id', sessione.struttura_id).single();
-  if (struttura?.stato === 'cancellato') {
-    await supabase.from('sessioni').delete().eq('token', token);
-    return res.status(403).json({ error: 'Il tuo abbonamento è stato cancellato. Contatta info@gestaway.com per riattivarlo.' });
   }
   req.strutturaId = sessione.struttura_id;
   req.utenteId = sessione.utente_id;
@@ -134,10 +131,6 @@ app.post('/api/login', async (req, res) => {
   const passwordOk = await bcrypt.compare(password, utente.password_hash);
   if (!passwordOk) return res.status(401).json({ error: 'Credenziali non valide.' });
 
-  if (utente.strutture?.stato === 'cancellato') {
-    return res.status(403).json({ error: 'Il tuo abbonamento è stato cancellato. Contatta info@gestaway.com per riattivarlo.' });
-  }
-
   const token = generaToken();
   await supabase.from('sessioni').insert({ token, struttura_id: utente.struttura_id, utente_id: utente.id });
   res.json({
@@ -158,48 +151,6 @@ app.get('/api/sessione', requireAuth, async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
-// RESET PASSWORD
-// ────────────────────────────────────────────────────────────
-app.post('/api/password/richiedi-reset', async (req, res) => {
-  const { email } = req.body;
-  // Risposta sempre generica: non rivela se l'email esiste o no.
-  if (!email) return res.json({ ok: true });
-  try {
-    const { data: utente } = await supabase.from('utenti').select('id').eq('email', email).single();
-    if (utente) {
-      const token = generaToken();
-      const scadeIl = new Date(Date.now() + 60 * 60 * 1000); // 1 ora
-      await supabase.from('utenti').update({ reset_token: token, reset_scade_il: scadeIl.toISOString() }).eq('id', utente.id);
-      if (process.env.SYSTEM_EMAIL_USER && process.env.SYSTEM_EMAIL_PASS) {
-        const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
-        const link = `${process.env.BASE_URL || 'https://www.gestaway.com'}/reset-password?token=${token}`;
-        await t.sendMail({
-          from: process.env.SYSTEM_EMAIL_USER, to: email,
-          subject: 'Reimposta la tua password Gestaway',
-          text: `Hai richiesto di reimpostare la password del tuo account Gestaway.\n\nClicca qui per scegliere una nuova password (link valido 1 ora):\n${link}\n\nSe non hai richiesto tu il reset, ignora questa email.`,
-        });
-      }
-    }
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('[Reset Password] Errore:', e.message);
-    res.json({ ok: true }); // non rivelare errori interni al client
-  }
-});
-
-app.post('/api/password/reset', async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ error: 'Dati mancanti.' });
-  if (password.length < 8) return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri.' });
-  const { data: utente } = await supabase.from('utenti').select('id, reset_scade_il').eq('reset_token', token).single();
-  if (!utente) return res.status(400).json({ error: 'Link non valido o già usato.' });
-  if (new Date(utente.reset_scade_il) < new Date()) return res.status(400).json({ error: 'Link scaduto, richiedine uno nuovo.' });
-  const passwordHash = await bcrypt.hash(password, 10);
-  await supabase.from('utenti').update({ password_hash: passwordHash, reset_token: null, reset_scade_il: null }).eq('id', utente.id);
-  res.json({ ok: true });
-});
-
-// ────────────────────────────────────────────────────────────
 // STRIPE CHECKOUT
 // ────────────────────────────────────────────────────────────
 const PIANI = {
@@ -217,9 +168,6 @@ app.post('/api/checkout', async (req, res) => {
   if (!priceId) return res.status(400).json({ error: 'Piano non valido.' });
   const cinPulito = String(cin).replace(/\s+/g, '').toUpperCase();
   if (!CIN_REGEX.test(cinPulito)) return res.status(400).json({ error: 'CIN non valido.' });
-
-  const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
-  if (esistente) return res.status(409).json({ error: 'Esiste già un account con questa email. Accedi invece di registrarti di nuovo.' });
 
   const subscriptionData = PIANI_SENZA_TRIAL.includes(piano)
     ? { metadata: { nome, piano, cin: cinPulito } }
@@ -292,43 +240,28 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/gestionale', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gestionale.html')));
 app.get('/attiva', (req, res) => res.sendFile(path.join(__dirname, 'public', 'attiva.html')));
 app.get('/grazie', (req, res) => res.sendFile(path.join(__dirname, 'public', 'grazie.html')));
-app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'public', 'reset-password.html')));
 app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sitemap.xml')));
 app.get('/robots.txt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'robots.txt')));
 
-// ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
-const channex = createChannexServices(supabase);
-if (process.env.CHANNEX_API_KEY) {
-  channex.bookings.startPolling();
-} else {
-  console.warn('[Channex] CHANNEX_API_KEY non impostata — polling disabilitato');
-}
-
-// Webhook Channex: pubblico, nessun token di sessione (chiamato da Channex stesso).
-// Deve restare PRIMA del gate app.use('/api', requireAuth) qui sotto.
-// Se CHANNEX_WEBHOOK_SECRET è impostata, l'URL configurato su Channex deve
-// includere ?secret=<valore> per essere accettato.
-app.post('/api/channex/webhook', async (req, res) => {
-  if (process.env.CHANNEX_WEBHOOK_SECRET && req.query.secret !== process.env.CHANNEX_WEBHOOK_SECRET) {
-    return res.status(401).json({ error: 'Non autorizzato.' });
-  }
-  try {
-    const payload = req.body;
-    const event = payload?.event || payload?.type;
-    try { await supabase.from('channex_log').insert({ tipo: 'webhook', dettagli: payload, esito: 'ok', messaggio: 'Webhook: ' + event }); } catch(e) {}
-    if (event === 'booking' || event === 'BookingRevision' || payload?.booking_id) {
-      channex.bookings.poll().catch(err => console.error('[Webhook] Errore poll:', err.message));
-    }
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ errore: err.message }); }
-});
-
-module.exports = { app, supabase, requireAuth, PORT };
 
 // ============================================================
 // TUTTE LE ROTTE /api/* DA QUI IN AVANTI RICHIEDONO LOGIN
 // ============================================================
+// ─── WEBHOOK CHANNEX (pubblico, NO auth) ───────────────────────────────────────
+app.post('/api/channex/webhook', async (req, res) => {
+  try {
+    const payload = req.body;
+    const event = payload?.event || payload?.type;
+    if (event === 'booking' || event === 'BookingRevision' || payload?.booking_id) {
+      channex.bookings.poll().catch(err => console.error('[Webhook] Errore poll:', err.message));
+    }
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.use('/api', requireAuth);
+
+// ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
 
 // ─── APPARTAMENTI ─────────────────────────────────────────────
 app.get('/api/appartamenti', async (req, res) => {
@@ -361,10 +294,7 @@ app.delete('/api/appartamenti/:id', async (req, res) => {
 app.get('/api/prenotazioni', async (req, res) => {
   const { data, error } = await supabase.from('prenotazioni').select('*, appartamenti(nome)').eq('struttura_id', req.strutturaId).order('data_arrivo', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  const { data: ospitiRows } = await supabase.from('ospiti').select('prenotazione_id').eq('struttura_id', req.strutturaId);
-  const conteggioOspiti = {};
-  (ospitiRows || []).forEach(o => { conteggioOspiti[o.prenotazione_id] = (conteggioOspiti[o.prenotazione_id] || 0) + 1; });
-  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—', numero_ospiti: conteggioOspiti[p.id] || 0 })));
+  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—' })));
 });
 app.post('/api/prenotazioni', async (req, res) => {
   const uid = 'manual_' + Date.now();
@@ -540,46 +470,6 @@ app.post('/api/questura/invia', async (req, res) => {
   res.json({ ok: true, inviato_automaticamente: false, contenuto });
 });
 
-// ─── ROSS1000 (statistiche turistiche Regione Lombardia) ────────
-function fmtDataRoss(d) { const dt = new Date(d); return `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`; }
-app.get('/api/ross1000/genera-xml', async (req, res) => {
-  try {
-    const { mese, anno } = req.query;
-    const meseN = parseInt(mese) || new Date().getMonth() + 1, annoN = parseInt(anno) || new Date().getFullYear();
-    const { data: cfgData } = await supabase.from('impostazioni').select('*').eq('struttura_id', req.strutturaId).eq('chiave', 'ross1000_codice');
-    const codice = cfgData?.[0]?.valore;
-    if (!codice) return res.status(400).json({ error: 'Codice Ross1000 non configurato' });
-    const dI = `${annoN}-${String(meseN).padStart(2, '0')}-01`;
-    const ultimoGiorno = new Date(annoN, meseN, 0).getDate();
-    const dF = `${annoN}-${String(meseN).padStart(2, '0')}-${String(ultimoGiorno).padStart(2, '0')}`;
-    const { data: prens } = await supabase.from('prenotazioni').select('*').eq('struttura_id', req.strutturaId).gte('data_arrivo', dI).lte('data_arrivo', dF).neq('stato', 'cancellata');
-    const ids = (prens || []).map(p => p.id);
-    const { data: ospiti } = ids.length ? await supabase.from('ospiti').select('*').eq('struttura_id', req.strutturaId).in('prenotazione_id', ids) : { data: [] };
-    let movimenti = '';
-    const byDate = {};
-    for (const p of (prens || [])) { if (!byDate[p.data_arrivo]) byDate[p.data_arrivo] = { p, ospiti: [] }; }
-    for (const o of (ospiti || [])) { const p = (prens || []).find(p => p.id === o.prenotazione_id); if (p && byDate[p.data_arrivo]) byDate[p.data_arrivo].ospiti.push(o); }
-    for (const [data, { p: pren, ospiti: osps }] of Object.entries(byDate).sort()) {
-      const df = fmtDataRoss(data); let arrivi = '', partenze = '';
-      for (const o of osps) {
-        const isCapo = osps.indexOf(o) === 0, id = `${pren.id}-${o.id}`.substring(0, 20);
-        const nascita = o.data_nascita ? fmtDataRoss(o.data_nascita) : '19800101';
-        const italiano = !o.stato_nascita_codice || o.stato_nascita_codice === '100000100';
-        const citt = italiano ? '100000100' : '100000200';
-        const canaleIndiretto = pren.fonte === 'Airbnb' || pren.fonte === 'Booking';
-        const canale = canaleIndiretto ? 'Indiretta web' : 'Diretta web';
-        arrivi += `<arrivo><idswh>${id}</idswh><tipoalloggiato>${isCapo ? '16' : '19'}</tipoalloggiato><idcapo>${isCapo ? '' : pren.id + '-' + osps[0].id}</idcapo><sesso>${o.sesso === '2' ? 'F' : 'M'}</sesso><cittadinanza>${citt}</cittadinanza><statoresidenza>${citt}</statoresidenza><luogoresidenza>${o.comune_nascita_codice || ''}</luogoresidenza><datanascita>${nascita}</datanascita><statonascita>${citt}</statonascita><comunenascita></comunenascita><tipoturismo>Escursionistico/Naturalistico</tipoturismo><mezzotrasporto>Auto</mezzotrasporto><canaleprenotazione>${canale}</canaleprenotazione><titolostudio></titolostudio><professione></professione><esenzioneimposta></esenzioneimposta></arrivo>`;
-        partenze += `<partenza><idswh>${id}</idswh><tipoalloggiato>${isCapo ? '16' : '19'}</tipoalloggiato><arrivo>${df}</arrivo></partenza>`;
-      }
-      movimenti += `<movimento><data>${df}</data><struttura><apertura>SI</apertura><camereoccupate>1</camereoccupate><cameredisponibili>1</cameredisponibili><lettidisponibili>2</lettidisponibili></struttura>${arrivi ? `<arrivi>${arrivi}</arrivi>` : ''}${partenze ? `<partenze>${partenze}</partenze>` : ''}</movimento>`;
-    }
-    const xml = `<?xml version="1.0" encoding="UTF-8"?><movimenti><codice>${codice}</codice><prodotto>Gestaway</prodotto>${movimenti}</movimenti>`;
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Content-Disposition', `attachment; filename="ross1000_${annoN}${String(meseN).padStart(2, '0')}.xml"`);
-    res.send(xml);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ─── EMAIL (lettura Airbnb via IMAP) ────────────────────────────
 async function getEmailConfig(strutturaId) {
   const { data } = await supabase.from('impostazioni').select('*').eq('struttura_id', strutturaId).in('chiave', ['email_user', 'email_pass']);
@@ -654,334 +544,238 @@ app.get('/api/prenotazioni/:id/ricevuta', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── CHANNEL MANAGER MULTI-TENANT ──────────────────────────────
-// Ogni struttura ha una propria property Channex, mappata in channex_mappings
-// (gestaway_property_id = struttura_id, channex_property_id = id su Channex).
-async function getPropertyId(strutturaId) {
-  const { data } = await supabase.from('channex_mappings').select('channex_property_id').eq('gestaway_property_id', strutturaId).single();
-  return data?.channex_property_id || null;
-}
-// Verifica che un rate_plan_id appartenga davvero alla struttura autenticata,
-// per evitare che una struttura modifichi le tariffe/restrizioni di un'altra
-// indovinando/riusando un ratePlanId.
-async function rateplanAppartieneAStruttura(ratePlanId, strutturaId) {
-  const { data } = await supabase.from('channex_rate_mappings').select('id').eq('channex_rate_plan_id', ratePlanId).eq('gestaway_property_id', strutturaId).single();
-  return !!data;
-}
-async function roomtypeAppartieneAStruttura(roomTypeId, strutturaId) {
-  const { data } = await supabase.from('channex_room_mappings').select('id').eq('channex_room_type_id', roomTypeId).eq('gestaway_property_id', strutturaId).single();
-  return !!data;
-}
-// Verifica che un thread/prenotazione Channex appartenga alla struttura autenticata,
-// dato che tutte le strutture condividono lo stesso account Channex.
-async function threadAppartieneAStruttura(threadId, propertyId) {
-  try {
-    const r = await channex.client.get(`/message_threads?filter[property_id]=${propertyId}&page[size]=100`);
-    return (r?.data || []).some(t => t.id === threadId);
-  } catch (e) { return false; }
-}
-async function bookingAppartieneAStruttura(bookingId, strutturaId) {
-  const { data } = await supabase.from('channex_prenotazioni').select('struttura_id').eq('channex_booking_id', bookingId).single();
-  return data?.struttura_id === strutturaId;
-}
-
-app.post('/api/channex/connetti', async (req, res) => {
-  const { data: esistente } = await supabase.from('channex_mappings').select('channex_property_id').eq('gestaway_property_id', req.strutturaId).single();
-  if (esistente) return res.status(409).json({ error: 'Questa struttura è già collegata a Channex.', channex_property_id: esistente.channex_property_id });
-
-  const { titolo, valuta, timezone, paese, citta, indirizzo, cap } = req.body;
-  if (!titolo || !valuta || !timezone || !paese || !citta || !indirizzo || !cap) {
-    return res.status(400).json({ error: 'Dati struttura incompleti (titolo, valuta, timezone, paese, citta, indirizzo, cap sono obbligatori).' });
-  }
-  try {
-    const r = await channex.client.createProperty({
-      title: titolo, currency: valuta, timezone, country: paese, city: citta, address: indirizzo, zip_code: cap,
-    });
-    const channexPropertyId = r?.data?.id;
-    if (!channexPropertyId) return res.status(500).json({ error: 'Channex non ha restituito un id property.' });
-    const { error } = await supabase.from('channex_mappings').insert({ gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId, channex_property_id: channexPropertyId });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ ok: true, channex_property_id: channexPropertyId });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/channex/full-sync', async (req, res) => {
-  try { await channex.sync.fullSync(req.strutturaId); res.json({ ok: true }); }
-  catch (err) { res.status(500).json({ errore: err.message }); }
-});
-app.post('/api/channex/push-ari', async (req, res) => {
-  const { tipo, values } = req.body;
-  if (!tipo || !values?.length) return res.status(400).json({ errore: 'tipo e values[] obbligatori.' });
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try {
-    for (const v of values) {
-      if (v.rate_plan_id && !(await rateplanAppartieneAStruttura(v.rate_plan_id, req.strutturaId))) {
-        return res.status(403).json({ errore: `Rate plan ${v.rate_plan_id} non appartenente alla tua struttura.` });
-      }
-      if (v.room_type_id && !(await roomtypeAppartieneAStruttura(v.room_type_id, req.strutturaId))) {
-        return res.status(403).json({ errore: `Room type ${v.room_type_id} non appartenente alla tua struttura.` });
-      }
-    }
-    await channex.outbox.enqueue(tipo, { values: values.map(v => ({ ...v, property_id: propertyId })) }, req.strutturaId);
-    await channex.outbox.flush();
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ errore: err.message }); }
-});
-app.get('/api/channex/rate-plans', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try { res.json(await channex.client.listRatePlans(propertyId)); }
-  catch (err) { res.status(500).json({ errore: err.message }); }
-});
-app.get('/api/channex/room-types', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try { res.json(await channex.client.listRoomTypes(propertyId)); }
-  catch (err) { res.status(500).json({ errore: err.message }); }
-});
-app.post('/api/channex/room-types', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  const { titolo, appartamento_id, occupazione_max } = req.body;
-  if (!titolo || !appartamento_id) return res.status(400).json({ errore: 'titolo e appartamento_id obbligatori.' });
-  const { data: apt } = await supabase.from('appartamenti').select('id').eq('id', appartamento_id).eq('struttura_id', req.strutturaId).single();
-  if (!apt) return res.status(403).json({ errore: 'Appartamento non appartenente alla tua struttura.' });
-  try {
-    const r = await channex.client.createRoomType({
-      property_id: propertyId, title: titolo, count_of_rooms: 1,
-      occ_adults: occupazione_max || 2, occ_children: 0, occ_infants: 0, default_occupancy: occupazione_max || 2,
-    });
-    const channexRoomTypeId = r?.data?.id;
-    if (!channexRoomTypeId) return res.status(500).json({ errore: 'Channex non ha restituito un id room type.' });
-    const { error } = await supabase.from('channex_room_mappings').insert({
-      gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId,
-      gestaway_room_id: appartamento_id, gestaway_room_nome: titolo,
-      channex_room_type_id: channexRoomTypeId, channex_room_type_nome: titolo,
-    });
-    if (error) return res.status(500).json({ errore: error.message });
-    res.json({ ok: true, channex_room_type_id: channexRoomTypeId });
-  } catch (e) { res.status(500).json({ errore: e.message }); }
-});
-app.post('/api/channex/rate-plans', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  const { titolo, channex_room_type_id, prezzo, valuta } = req.body;
-  if (!titolo || !channex_room_type_id || !prezzo) return res.status(400).json({ errore: 'titolo, channex_room_type_id e prezzo obbligatori.' });
-  const { data: roomMap } = await supabase.from('channex_room_mappings').select('gestaway_room_id').eq('channex_room_type_id', channex_room_type_id).eq('gestaway_property_id', req.strutturaId).single();
-  if (!roomMap) return res.status(403).json({ errore: 'Room type non appartenente alla tua struttura.' });
-  try {
-    const r = await channex.client.createRatePlan({
-      property_id: propertyId, room_type_id: channex_room_type_id, title: titolo, currency: valuta || 'EUR',
-      options: [{ occupancy: 2, rate: Math.round(prezzo * 100), is_primary: true }],
-    });
-    const channexRatePlanId = r?.data?.id;
-    if (!channexRatePlanId) return res.status(500).json({ errore: 'Channex non ha restituito un id rate plan.' });
-    const { error } = await supabase.from('channex_rate_mappings').insert({
-      gestaway_property_id: req.strutturaId, struttura_id: req.strutturaId,
-      gestaway_room_id: roomMap.gestaway_room_id, channex_room_type_id,
-      channex_rate_plan_id: channexRatePlanId, channex_rate_plan_nome: titolo,
-      prezzo_default: prezzo, valuta: valuta || 'EUR',
-    });
-    if (error) return res.status(500).json({ errore: error.message });
-    res.json({ ok: true, channex_rate_plan_id: channexRatePlanId });
-  } catch (e) { res.status(500).json({ errore: e.message }); }
-});
-app.put('/api/channex/rate-plans/:ratePlanId/restrictions', async (req, res) => {
-  if (!(await rateplanAppartieneAStruttura(req.params.ratePlanId, req.strutturaId))) {
-    return res.status(403).json({ error: 'Rate plan non appartenente alla tua struttura.' });
-  }
-  try {
-    const { min_stay_arrival, min_stay_through } = req.body;
-    const body = { rate_plan: {} };
-    if (min_stay_arrival) body.rate_plan.min_stay_arrival = min_stay_arrival;
-    if (min_stay_through) body.rate_plan.min_stay_through = min_stay_through;
-    const r = await channex.client.put('/rate_plans/' + req.params.ratePlanId, body);
-    res.json({ ok: true, data: r?.data });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-const DATA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const RESTRIZIONI_VALIDE = ['min_stay_arrival', 'min_stay_through', 'max_stay', 'stop_sell', 'closed_to_arrival', 'closed_to_departure'];
-app.get('/api/channex/check-restrictions', async (req, res) => {
-  const { date_from, date_to, restrictions } = req.query;
-  if (!DATA_REGEX.test(date_from) || !DATA_REGEX.test(date_to)) return res.status(400).json({ error: 'date_from, date_to devono essere nel formato YYYY-MM-DD.' });
-  const restrizione = restrictions || 'min_stay_arrival';
-  if (!RESTRIZIONI_VALIDE.includes(restrizione)) return res.status(400).json({ error: 'Parametro restrictions non valido.' });
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try {
-    const r = await channex.client.get(`/restrictions?filter[property_id]=${propertyId}&filter[date][gte]=${date_from}&filter[date][lte]=${date_to}&filter[restrictions]=${restrizione}`);
-    res.json(r);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/channex/property-detail', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try { res.json(await channex.client.get('/properties/' + propertyId)); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/channex/outbox', async (req, res) => {
-  const { data, error } = await supabase.from('channex_outbox')
-    .select('id, tipo, stato, tentativi, task_ids, errore, created_at, elaborato_at')
-    .eq('struttura_id', req.strutturaId)
-    .order('created_at', { ascending: false }).limit(100);
-  if (error) return res.status(500).json({ errore: error.message });
-  res.json(data);
-});
-app.get('/api/channex/outbox-detail/:id', async (req, res) => {
-  const { data, error } = await supabase.from('channex_outbox').select('*').eq('id', req.params.id).eq('struttura_id', req.strutturaId).single();
-  if (error) return res.status(404).json({ errore: 'Non trovato.' });
-  res.json(data);
-});
-app.get('/api/channex/prenotazioni', async (req, res) => {
-  const { data, error } = await supabase.from('channex_prenotazioni').select('*').eq('struttura_id', req.strutturaId).order('arrivo', { ascending: false }).limit(50);
-  if (error) return res.status(500).json({ errore: error.message });
-  res.json(data);
-});
-app.post('/api/channex/poll-bookings', async (req, res) => {
-  try { await channex.bookings.poll(); res.json({ ok: true }); }
-  catch (err) { res.status(500).json({ errore: err.message }); }
-});
-async function tuttiIBookingChannex(propertyId) {
-  let tutti = [], pagina = 1, altre = true;
-  while (altre) {
-    const r = await channex.client.get(`/bookings?filter[property_id]=${propertyId}&page[size]=100&page[number]=${pagina}`);
-    const lotto = r?.data || [];
-    tutti = tutti.concat(lotto);
-    altre = lotto.length === 100;
-    pagina++;
-  }
-  return tutti;
-}
-// Riallinea lo stato locale con quello reale su Booking.com/Airbnb — la feed di
-// revision a volte perde una cancellazione, quindi leggiamo lo stato attuale
-// direttamente dai booking, che e' sempre la verita'.
-app.post('/api/channex/riallinea-stato', async (req, res) => {
-  try {
-    const propertyId = await getPropertyId(req.strutturaId);
-    if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata.' });
-    const tutti = await tuttiIBookingChannex(propertyId);
-    const corrette = [];
-    for (const b of tutti) {
-      const statoReale = b.attributes?.status === 'cancelled' ? 'cancellata' : 'confermata';
-      if (statoReale !== 'cancellata') continue;
-      const uid = 'channex_' + b.id;
-      const { data: locale } = await supabase.from('prenotazioni').select('id, stato').eq('uid', uid).eq('struttura_id', req.strutturaId).maybeSingle();
-      if (locale && locale.stato !== 'cancellata') {
-        await supabase.from('prenotazioni').update({ stato: 'cancellata' }).eq('id', locale.id);
-        corrette.push({ uid, da: locale.stato, a: statoReale });
-      }
-    }
-    res.json({ ok: true, controllate: tutti.length, corrette });
-  } catch (err) { res.status(500).json({ errore: err.message }); }
-});
-// Confronta tutte le prenotazioni tra Booking.com/Airbnb e il gestionale: date
-// diverse, cancellazioni non recepite, prenotazioni mai arrivate nel gestionale.
-app.post('/api/channex/verifica-allineamento', async (req, res) => {
-  try {
-    const propertyId = await getPropertyId(req.strutturaId);
-    if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata.' });
-    const tutti = await tuttiIBookingChannex(propertyId);
-    const { data: prens } = await supabase.from('prenotazioni').select('uid, data_arrivo, data_partenza, stato').eq('struttura_id', req.strutturaId).like('uid', 'channex_%');
-    const locali = {};
-    (prens || []).forEach(p => { locali[p.uid.replace('channex_', '')] = p; });
-    const problemi = [];
-    for (const b of tutti) {
-      const attrs = b.attributes || {};
-      const nome = `${attrs.customer?.name || ''} ${attrs.customer?.surname || ''}`.trim() || 'Ospite sconosciuto';
-      const locale = locali[b.id];
-      const cancellataSuChannex = attrs.status === 'cancelled';
-      if (!locale) {
-        if (!cancellataSuChannex) problemi.push(`Mancante nel gestionale: ${nome} (${attrs.arrival_date} → ${attrs.departure_date})`);
-        continue;
-      }
-      if (!cancellataSuChannex && (locale.data_arrivo !== attrs.arrival_date || locale.data_partenza !== attrs.departure_date)) {
-        problemi.push(`Date diverse: ${nome} — Booking.com/Airbnb: ${attrs.arrival_date} → ${attrs.departure_date}, gestionale: ${locale.data_arrivo} → ${locale.data_partenza}`);
-      }
-      if (cancellataSuChannex && locale.stato !== 'cancellata') {
-        problemi.push(`Cancellata su Booking.com/Airbnb ma non sul gestionale: ${nome}`);
-      }
-    }
-    res.json({ ok: true, discrepanze: problemi.length, dettagli: problemi });
-  } catch (e) { res.status(500).json({ errore: e.message }); }
-});
-
-// ─── MESSAGGI CHANNEX ───────────────────────────────────────────
-app.get('/api/messaggi/threads', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try {
-    const r = await channex.client.get(`/message_threads?page[size]=50&filter[property_id]=${propertyId}`);
-    const threads = (r?.data || []).map(t => ({
-      id: t.id,
-      title: t.attributes?.title,
-      provider: t.attributes?.provider,
-      is_closed: t.attributes?.is_closed,
-      message_count: t.attributes?.message_count,
-      last_message: t.attributes?.last_message,
-      last_message_received_at: t.attributes?.last_message_received_at,
-      booking_id: t.relationships?.booking?.data?.id || null,
-    }));
-    res.json(threads);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/messaggi/thread/:id', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  if (!(await threadAppartieneAStruttura(req.params.id, propertyId))) {
-    return res.status(403).json({ error: 'Thread non appartenente alla tua struttura.' });
-  }
-  try {
-    const r = await channex.client.get('/message_threads/' + req.params.id + '/messages?page[size]=50');
-    const msgs = (r?.data || []).map(m => ({
-      id: m.id,
-      message: m.attributes?.message,
-      sender: m.attributes?.sender,
-      inserted_at: m.attributes?.inserted_at,
-      attachments: m.attributes?.attachments || [],
-    })).reverse();
-    res.json(msgs);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.post('/api/messaggi/invia', async (req, res) => {
-  const { thread_id, booking_id, messaggio } = req.body;
-  if (!messaggio) return res.status(400).json({ error: 'Messaggio mancante' });
-  try {
-    let result;
-    if (thread_id) {
-      const propertyId = await getPropertyId(req.strutturaId);
-      if (!propertyId || !(await threadAppartieneAStruttura(thread_id, propertyId))) {
-        return res.status(403).json({ error: 'Thread non appartenente alla tua struttura.' });
-      }
-      result = await channex.client.post('/message_threads/' + thread_id + '/messages', { message: { message: messaggio } });
-    } else if (booking_id) {
-      if (!(await bookingAppartieneAStruttura(booking_id, req.strutturaId))) {
-        return res.status(403).json({ error: 'Prenotazione non appartenente alla tua struttura.' });
-      }
-      result = await channex.client.post('/bookings/' + booking_id + '/messages', { message: { message: messaggio } });
-    } else {
-      return res.status(400).json({ error: 'thread_id o booking_id richiesto' });
-    }
-    res.json({ ok: true, data: result?.data });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/channex/iframe-token', async (req, res) => {
-  const propertyId = await getPropertyId(req.strutturaId);
-  if (!propertyId) return res.status(400).json({ errore: 'Struttura non ancora collegata a Channex.' });
-  try {
-    const { data: struttura } = await supabase.from('strutture').select('email').eq('id', req.strutturaId).single();
-    const r = await channex.client.post('/auth/one_time_token', {
-      one_time_token: { property_id: propertyId, username: struttura?.email || 'owner' }
-    });
-    const token = r?.data?.token;
-    if (!token) return res.status(500).json({ error: 'Token non ricevuto' });
-    res.json({ token, property_id: propertyId });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 // ────────────────────────────────────────────────────────────
 // AVVIO
 // ────────────────────────────────────────────────────────────
+// ============================================================
+// CHANNEL MANAGER — endpoint multi-tenant (da aggiungere al
+// server.js, dopo gli endpoint /api/prenotazioni/*, prima di
+// app.listen). Ogni endpoint e' scoped per req.strutturaId.
+// ============================================================
+
+// Il "gestaway_property_id" di ogni struttura e' semplicemente
+// il suo struttura_id: un solo Channex "property" per cliente
+// (che puo' contenere piu' room_type = piu' appartamenti).
+
+// ─── COLLEGAMENTO INIZIALE: crea la property su Channex ────────
+app.post('/api/channex/connetti', async (req, res) => {
+  try {
+    const { data: strutturaRow } = await supabase.from('strutture').select('*').eq('id', req.strutturaId).single();
+    if (!strutturaRow) return res.status(404).json({ error: 'Struttura non trovata.' });
+
+    const { data: mappingEsistente } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+    if (mappingEsistente) return res.json({ ok: true, gia_connessa: true, channex_property_id: mappingEsistente.channex_property_id });
+
+    // Crea la property su Channex
+    const propertyAttrs = {
+      title: strutturaRow.nome,
+      currency: 'EUR',
+      email: strutturaRow.email,
+      timezone: 'Europe/Rome',
+      country: 'IT',
+    };
+    const result = await channex.client.createProperty(propertyAttrs);
+    const channexPropertyId = result?.data?.id;
+    if (!channexPropertyId) return res.status(500).json({ error: 'Channex non ha restituito un property ID.' });
+
+    const { error } = await supabase.from('channex_mappings').insert({
+      struttura_id: req.strutturaId,
+      gestaway_property_id: req.strutturaId,
+      gestaway_nome: strutturaRow.nome,
+      channex_property_id: channexPropertyId,
+    });
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ ok: true, gia_connessa: false, channex_property_id: channexPropertyId });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/channex/stato', async (req, res) => {
+  const { data } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  res.json({ connessa: !!data, mapping: data || null });
+});
+
+// ─── CAMERE (collega un appartamento a un room_type Channex) ───
+app.post('/api/channex/camere', async (req, res) => {
+  const { appartamento_id, nome, disponibilita_default } = req.body;
+  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Collega prima la struttura a Channex.' });
+  try {
+    const result = await channex.client.createRoomType({
+      property_id: mapping.channex_property_id,
+      title: nome,
+      count_of_rooms: disponibilita_default || 1,
+      occ_adults: 2, occ_children: 0, occ_infants: 0,
+    });
+    const roomTypeId = result?.data?.id;
+    if (!roomTypeId) return res.status(500).json({ error: 'Channex non ha restituito un room_type ID.' });
+    const gestawayRoomId = 'room-' + req.strutturaId.slice(0, 8) + '-' + Date.now();
+    const { error } = await supabase.from('channex_room_mappings').insert({
+      struttura_id: req.strutturaId,
+      gestaway_property_id: req.strutturaId,
+      gestaway_room_id: gestawayRoomId,
+      gestaway_room_nome: nome,
+      channex_room_type_id: roomTypeId,
+      channex_room_type_nome: nome,
+      disponibilita_default: disponibilita_default || 1,
+      appartamento_gestaway_id: appartamento_id || null,
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, channex_room_type_id: roomTypeId, gestaway_room_id: gestawayRoomId });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/channex/camere', async (req, res) => {
+  const { data, error } = await supabase.from('channex_room_mappings').select('*').eq('struttura_id', req.strutturaId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ─── TARIFFE (collega un rate plan Channex, es. Base Airbnb/Booking) ──
+app.post('/api/channex/tariffe', async (req, res) => {
+  const { channex_room_type_id, nome, prezzo_default, min_stay_default, valuta } = req.body;
+  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Collega prima la struttura a Channex.' });
+  try {
+    const result = await channex.client.createRatePlan({
+      property_id: mapping.channex_property_id,
+      room_type_id: channex_room_type_id,
+      title: nome,
+      currency: valuta || 'EUR',
+      sell_mode: 'per_room',
+      rate_mode: 'manual',
+    });
+    const ratePlanId = result?.data?.id;
+    if (!ratePlanId) return res.status(500).json({ error: 'Channex non ha restituito un rate_plan ID.' });
+    const { error } = await supabase.from('channex_rate_mappings').insert({
+      struttura_id: req.strutturaId,
+      gestaway_property_id: req.strutturaId,
+      channex_room_type_id,
+      channex_rate_plan_id: ratePlanId,
+      channex_rate_plan_nome: nome,
+      prezzo_default: prezzo_default || 100,
+      min_stay_default: min_stay_default || 1,
+      valuta: valuta || 'EUR',
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, channex_rate_plan_id: ratePlanId });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/channex/tariffe', async (req, res) => {
+  const { data, error } = await supabase.from('channex_rate_mappings').select('*').eq('struttura_id', req.strutturaId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ─── FULL SYNC (solo disponibilita', mai tariffe/restrizioni) ──
+app.post('/api/channex/full-sync', async (req, res) => {
+  try {
+    await channex.sync.fullSync(req.strutturaId, req.strutturaId);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── TARIFFE E RESTRIZIONI (form manuale, per range di date) ───
+app.post('/api/channex/push-restrizioni', async (req, res) => {
+  const { rate_plan_id, date_from, date_to, rate, min_stay_arrival, min_stay_through, max_stay, stop_sell, closed_to_arrival, closed_to_departure } = req.body;
+  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Struttura non collegata a Channex.' });
+  try {
+    const values = [{
+      property_id: mapping.channex_property_id,
+      rate_plan_id, date_from, date_to,
+      ...(rate != null && { rate: Math.round(rate * 100) }),
+      ...(min_stay_arrival != null && { min_stay_arrival }),
+      ...(min_stay_through != null && { min_stay_through }),
+      ...(max_stay != null && { max_stay }),
+      ...(stop_sell != null && { stop_sell }),
+      ...(closed_to_arrival != null && { closed_to_arrival }),
+      ...(closed_to_departure != null && { closed_to_departure }),
+    }];
+    await channex.outbox.enqueue(req.strutturaId, 'restrictions', { values }, req.strutturaId);
+    await channex.outbox.flush();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── PATTERN SETTIMANALE (min-stay fisso per giorno della settimana) ──
+app.put('/api/channex/rate-plans/:ratePlanId/pattern-settimanale', async (req, res) => {
+  try {
+    const { pattern } = req.body; // array di 7 numeri, Lun..Dom
+    if (!Array.isArray(pattern) || pattern.length !== 7) return res.status(400).json({ error: 'pattern deve essere un array di 7 numeri (Lun..Dom).' });
+    const body = { rate_plan: { min_stay_arrival: pattern, min_stay_through: pattern } };
+    const r = await channex.client.put('/rate_plans/' + req.params.ratePlanId, body);
+    res.json({ ok: true, data: r?.data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── VERIFICA RESTRIZIONI (per debug/controllo dal frontend) ───
+app.get('/api/channex/check-restrictions', async (req, res) => {
+  const { date_from, date_to, restrictions } = req.query;
+  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Struttura non collegata a Channex.' });
+  try {
+    const r = await channex.client.get(`/restrictions?filter[property_id]=${mapping.channex_property_id}&filter[date][gte]=${date_from}&filter[date][lte]=${date_to}&filter[restrictions]=${restrictions || 'min_stay_through'}`);
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── PRENOTAZIONI DA CHANNEX (per la vista Channel Manager) ────
+app.get('/api/channex/prenotazioni', async (req, res) => {
+  const { data, error } = await supabase.from('channex_prenotazioni').select('*').eq('struttura_id', req.strutturaId).order('arrivo', { ascending: false }).limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ─── MESSAGGI (iframe Channex + API dirette) ────────────────────
+app.get('/api/channex/iframe-token', async (req, res) => {
+  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Struttura non collegata a Channex.' });
+  try {
+    const r = await channex.client.post('/auth/one_time_token', {
+      one_time_token: { property_id: mapping.channex_property_id, username: 'admin' }
+    });
+    const token = r?.data?.token;
+    if (!token) return res.status(500).json({ error: 'Token non ricevuto.' });
+    res.json({ token, channex_property_id: mapping.channex_property_id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/messaggi/threads', async (req, res) => {
+  try {
+    const r = await channex.client.get('/message_threads?page[size]=100');
+    const threads = (r?.data || []).map(t => ({
+      id: t.id, title: t.attributes?.title, provider: t.attributes?.provider,
+      is_closed: t.attributes?.is_closed, message_count: t.attributes?.message_count,
+      last_message: t.attributes?.last_message, last_message_received_at: t.attributes?.last_message_received_at,
+      booking_id: t.relationships?.booking?.data?.id || null,
+    }));
+    res.json(threads);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/messaggi/thread/:id', async (req, res) => {
+  try {
+    const r = await channex.client.get('/message_threads/' + req.params.id + '/messages?page[size]=50');
+    const msgs = (r?.data || []).map(m => ({
+      id: m.id, message: m.attributes?.message, sender: m.attributes?.sender,
+      inserted_at: m.attributes?.inserted_at, attachments: m.attributes?.attachments || [],
+    })).reverse();
+    res.json(msgs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/messaggi/invia', async (req, res) => {
+  const { thread_id, booking_id, messaggio } = req.body;
+  if (!messaggio) return res.status(400).json({ error: 'Messaggio mancante.' });
+  try {
+    let result;
+    if (thread_id) result = await channex.client.post('/message_threads/' + thread_id + '/messages', { message: { message: messaggio } });
+    else if (booking_id) result = await channex.client.post('/bookings/' + booking_id + '/messages', { message: { message: messaggio } });
+    else return res.status(400).json({ error: 'thread_id o booking_id richiesto.' });
+    res.json({ ok: true, data: result?.data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
+
+module.exports = { app, supabase, requireAuth, PORT };
