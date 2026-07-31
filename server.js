@@ -564,6 +564,23 @@ app.get('/api/channex/tutte-le-properties-debug', async (req, res) => {
     res.json(r);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.post('/api/channex/invita-tutte-le-properties-debug', async (req, res) => {
+  try {
+    const lista = await channex.client.listProperties();
+    const risultati = [];
+    for (const p of (lista.data || [])) {
+      try {
+        await channex.client.post('/property_users', {
+          invite: { property_id: p.id, user_email: 'cademarifaloppiocomo@gmail.com', role: 'owner' }
+        });
+        risultati.push({ id: p.id, nome: p.attributes?.title, esito: 'ok' });
+      } catch (e) {
+        risultati.push({ id: p.id, nome: p.attributes?.title, esito: 'errore o gia\u0300 invitato: ' + e.message });
+      }
+    }
+    res.json({ risultati });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.post('/api/channex/connetti', async (req, res) => {
   try {
     const { data: strutturaRow } = await supabase.from('strutture').select('*').eq('id', req.strutturaId).single();
@@ -583,6 +600,16 @@ app.post('/api/channex/connetti', async (req, res) => {
     const result = await channex.client.createProperty(propertyAttrs);
     const channexPropertyId = result?.data?.id;
     if (!channexPropertyId) return res.status(500).json({ error: 'Channex non ha restituito un property ID.' });
+
+    // Invita automaticamente l'account admin Gestaway a vedere questa property
+    // sul pannello Channex (altrimenti resta visibile solo via API, mai sul sito).
+    try {
+      await channex.client.post('/property_users', {
+        invite: { property_id: channexPropertyId, user_email: 'cademarifaloppiocomo@gmail.com', role: 'owner' }
+      });
+    } catch (inviteErr) {
+      console.warn('[Channex] Invito property user fallito (non bloccante):', inviteErr.message);
+    }
 
     const { error } = await supabase.from('channex_mappings').insert({
       struttura_id: req.strutturaId,
