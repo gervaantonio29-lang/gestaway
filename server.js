@@ -558,6 +558,12 @@ app.get('/api/prenotazioni/:id/ricevuta', async (req, res) => {
 // (che puo' contenere piu' room_type = piu' appartamenti).
 
 // ─── COLLEGAMENTO INIZIALE: crea la property su Channex ────────
+app.get('/api/channex/tutte-le-properties-debug', async (req, res) => {
+  try {
+    const r = await channex.client.listProperties();
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.post('/api/channex/connetti', async (req, res) => {
   try {
     const { data: strutturaRow } = await supabase.from('strutture').select('*').eq('id', req.strutturaId).single();
