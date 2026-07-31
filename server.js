@@ -647,6 +647,7 @@ app.post('/api/channex/camere', async (req, res) => {
       title: nome,
       count_of_rooms: disponibilita_default || 1,
       occ_adults: 2, occ_children: 0, occ_infants: 0,
+      default_occupancy: 2,
     });
     const roomTypeId = result?.data?.id;
     if (!roomTypeId) return res.status(500).json({ error: 'Channex non ha restituito un room_type ID.' });
