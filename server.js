@@ -558,6 +558,14 @@ app.get('/api/prenotazioni/:id/ricevuta', async (req, res) => {
 // (che puo' contenere piu' room_type = piu' appartamenti).
 
 // ─── COLLEGAMENTO INIZIALE: crea la property su Channex ────────
+app.get('/api/channex/ambiente-debug', async (req, res) => {
+  res.json({
+    CHANNEX_ENV: process.env.CHANNEX_ENV || '(non impostata)',
+    base_url_effettivo: channex.client.baseUrl,
+    api_key_presente: !!process.env.CHANNEX_API_KEY,
+    api_key_primi_8_caratteri: (process.env.CHANNEX_API_KEY || '').slice(0, 8),
+  });
+});
 app.get('/api/channex/tutte-le-properties-debug', async (req, res) => {
   try {
     const r = await channex.client.listProperties();
