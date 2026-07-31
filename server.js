@@ -639,18 +639,19 @@ app.get('/api/channex/stato', async (req, res) => {
 // ─── CAMERE (collega un appartamento a un room_type Channex) ───
 app.post('/api/channex/camere', async (req, res) => {
   const { appartamento_id, nome, disponibilita_default } = req.body;
-  const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
-  if (!mapping) return res.status(400).json({ error: 'Collega prima la struttura a Channex.' });
+  const { data: mapping, error: mappingErr } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+  if (!mapping) return res.status(400).json({ error: 'Collega prima la struttura a Channex.', mappingErr: mappingErr?.message });
   try {
-    const result = await channex.client.createRoomType({
+    const payloadUsato = {
       property_id: mapping.channex_property_id,
       title: nome,
       count_of_rooms: disponibilita_default || 1,
       occ_adults: 2, occ_children: 0, occ_infants: 0,
       default_occupancy: 2,
-    });
+    };
+    const result = await channex.client.createRoomType(payloadUsato);
     const roomTypeId = result?.data?.id;
-    if (!roomTypeId) return res.status(500).json({ error: 'Channex non ha restituito un room_type ID.' });
+    if (!roomTypeId) return res.status(500).json({ error: 'Channex non ha restituito un room_type ID.', payload_usato: payloadUsato, risposta_channex: result });
     const gestawayRoomId = 'room-' + req.strutturaId.slice(0, 8) + '-' + Date.now();
     const { error } = await supabase.from('channex_room_mappings').insert({
       struttura_id: req.strutturaId,
@@ -664,7 +665,7 @@ app.post('/api/channex/camere', async (req, res) => {
     });
     if (error) return res.status(500).json({ error: error.message });
     res.json({ ok: true, channex_room_type_id: roomTypeId, gestaway_room_id: gestawayRoomId });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message, property_id_usato: mapping.channex_property_id }); }
 });
 app.get('/api/channex/camere', async (req, res) => {
   const { data, error } = await supabase.from('channex_room_mappings').select('*').eq('struttura_id', req.strutturaId);
