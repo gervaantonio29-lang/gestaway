@@ -571,7 +571,7 @@ app.post('/api/channex/invita-tutte-le-properties-debug', async (req, res) => {
     for (const p of (lista.data || [])) {
       try {
         await channex.client.post('/property_users', {
-          invite: { property_id: p.id, user_email: 'cademarifaloppiocomo@gmail.com', role: 'owner' }
+          invite: { property_id: p.id, user_email: 'cademarifaloppiocomo@gmail.com', role: 'user' }
         });
         risultati.push({ id: p.id, nome: p.attributes?.title, esito: 'ok' });
       } catch (e) {
@@ -605,7 +605,7 @@ app.post('/api/channex/connetti', async (req, res) => {
     // sul pannello Channex (altrimenti resta visibile solo via API, mai sul sito).
     try {
       await channex.client.post('/property_users', {
-        invite: { property_id: channexPropertyId, user_email: 'cademarifaloppiocomo@gmail.com', role: 'owner' }
+        invite: { property_id: channexPropertyId, user_email: 'cademarifaloppiocomo@gmail.com', role: 'user' }
       });
     } catch (inviteErr) {
       console.warn('[Channex] Invito property user fallito (non bloccante):', inviteErr.message);
