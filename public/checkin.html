@@ -186,6 +186,21 @@
         </div>
       </div>
       <div class="form-row">
+        <div class="form-group" style="position:relative">
+          <label id="t-country-res">Stato di residenza *</label>
+          <input type="text" id="q-stato-res-search" oninput="cercaStatoRes()" autocomplete="off">
+          <input type="hidden" id="q-stato-res-codice">
+          <div id="q-stato-res-suggestions" class="suggestions-box" style="display:none"></div>
+        </div>
+        <div class="form-group" style="position:relative">
+          <label id="t-city-res">Comune di residenza <span style="font-size:11px;font-weight:400" id="t-city-res-note">(solo italiani)</span></label>
+          <input type="text" id="q-comune-res-search" oninput="cercaComuneRes()" autocomplete="off">
+          <input type="hidden" id="q-comune-res-codice">
+          <input type="hidden" id="q-comune-res-provincia">
+          <div id="q-comune-res-suggestions" class="suggestions-box" style="display:none"></div>
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label id="t-doctype">Tipo documento *</label>
           <select id="q-tipdoc">
@@ -604,8 +619,13 @@ async function salvaOspite() {
   if (!nome || !cognome) { toast(t.errName, 'error'); return; }
   if (!nascita) { toast(t.errDob, 'error'); return; }
   if (!statoCodice) { toast(t.errCountry, 'error'); return; }
+  const statoResCodice = document.getElementById('q-stato-res-codice').value;
+  const statoResNome = (document.getElementById('q-stato-res-search').value || '').toUpperCase();
+  const comuneResCodice = document.getElementById('q-comune-res-codice').value;
+  if (!statoResCodice) { toast('Seleziona lo stato di residenza dalla lista', 'error'); return; }
+  if (statoResNome.includes('ITALIA') && !comuneResCodice) { toast('Seleziona il comune di residenza dalla lista', 'error'); return; }
   if (!numdoc) { toast(t.errDoc, 'error'); return; }
-  const data = { nome, cognome, sesso: document.getElementById('q-sesso').value, data_nascita: nascita, stato_nascita_codice: statoCodice, stato_nascita_nome: document.getElementById('q-stato-search').value, comune_nascita_codice: document.getElementById('q-comune-codice').value, comune_nascita_nome: document.getElementById('q-comune-search').value, comune_nascita_provincia: document.getElementById('q-comune-provincia').value, tipo_documento: document.getElementById('q-tipdoc').value, numero_documento: numdoc };
+  const data = { nome, cognome, sesso: document.getElementById('q-sesso').value, data_nascita: nascita, stato_nascita_codice: statoCodice, stato_nascita_nome: document.getElementById('q-stato-search').value, comune_nascita_codice: document.getElementById('q-comune-codice').value, comune_nascita_nome: document.getElementById('q-comune-search').value, comune_nascita_provincia: document.getElementById('q-comune-provincia').value, stato_residenza_codice: statoResCodice, stato_residenza_nome: document.getElementById('q-stato-res-search').value, comune_residenza_codice: comuneResCodice, comune_residenza_nome: document.getElementById('q-comune-res-search').value, comune_residenza_provincia: document.getElementById('q-comune-res-provincia').value, tipo_documento: document.getElementById('q-tipdoc').value, numero_documento: numdoc };
   const r = await fetch('/api/checkin/' + prenId + '/ospiti', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   if (!r.ok) { toast(t.toastErrSave, 'error'); return; }
   resetForm();
@@ -626,18 +646,33 @@ async function confermaCheckin() {
   else { btn.disabled = false; document.getElementById('t-confirm-btn').textContent = t.confirmBtn; toast(t.toastErrConfirm, 'error'); }
 }
 
+function nomeStatoVisualizzato(nomeItaliano) {
+  if (lang === 'it') return nomeItaliano;
+  if (typeof AW_STATI_EN !== 'undefined' && AW_STATI_EN[nomeItaliano]) return AW_STATI_EN[nomeItaliano];
+  return nomeItaliano;
+}
 function cercaStato() {
   const q = document.getElementById('q-stato-search').value.toUpperCase().trim();
   const sug = document.getElementById('q-stato-suggestions');
   if (q.length < 2) { sug.style.display = 'none'; return; }
-  const results = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => s[1].includes(q)).slice(0, 8);
-  if (!results.length) { sug.style.display = 'none'; return; }
-  sug.innerHTML = results.map(s => `<div onclick="selStato('${s[0]}','${s[1]}')">${s[1]}</div>`).join('');
+  const diretti = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => s[1].includes(q));
+  let viaAlias = [];
+  if (typeof AW_STATI_ALIAS !== 'undefined') {
+    const nomiTradotti = Object.keys(AW_STATI_ALIAS).filter(k => k.includes(q)).map(k => AW_STATI_ALIAS[k]);
+    viaAlias = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => nomiTradotti.includes(s[1]));
+  }
+  let viaInglese = [];
+  if (typeof lang !== 'undefined' && lang !== 'it' && typeof AW_STATI_EN !== 'undefined') {
+    viaInglese = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => (AW_STATI_EN[s[1]] || '').includes(q));
+  }
+  const tutti = [...diretti, ...viaAlias, ...viaInglese].filter((s, i, arr) => arr.findIndex(x => x[0] === s[0]) === i).slice(0, 8);
+  if (!tutti.length) { sug.style.display = 'none'; return; }
+  sug.innerHTML = tutti.map(s => `<div onclick="selStato('${s[0]}','${s[1]}')">${nomeStatoVisualizzato(s[1])}</div>`).join('');
   sug.style.display = 'block';
 }
 
 function selStato(codice, nome) {
-  document.getElementById('q-stato-search').value = nome;
+  document.getElementById('q-stato-search').value = nomeStatoVisualizzato(nome);
   document.getElementById('q-stato-codice').value = codice;
   document.getElementById('q-stato-suggestions').style.display = 'none';
 }
@@ -657,6 +692,45 @@ function selComune(codice, nome, provincia) {
   document.getElementById('q-comune-codice').value = codice;
   document.getElementById('q-comune-provincia').value = provincia;
   document.getElementById('q-comune-suggestions').style.display = 'none';
+}
+function cercaStatoRes() {
+  const q = document.getElementById('q-stato-res-search').value.toUpperCase().trim();
+  const sug = document.getElementById('q-stato-res-suggestions');
+  if (q.length < 2) { sug.style.display = 'none'; return; }
+  const diretti = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => s[1].includes(q));
+  let viaAlias = [];
+  if (typeof AW_STATI_ALIAS !== 'undefined') {
+    const nomiTradotti = Object.keys(AW_STATI_ALIAS).filter(k => k.includes(q)).map(k => AW_STATI_ALIAS[k]);
+    viaAlias = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => nomiTradotti.includes(s[1]));
+  }
+  let viaInglese = [];
+  if (typeof lang !== 'undefined' && lang !== 'it' && typeof AW_STATI_EN !== 'undefined') {
+    viaInglese = (typeof AW_STATI !== 'undefined' ? AW_STATI : []).filter(s => (AW_STATI_EN[s[1]] || '').includes(q));
+  }
+  const tutti = [...diretti, ...viaAlias, ...viaInglese].filter((s, i, arr) => arr.findIndex(x => x[0] === s[0]) === i).slice(0, 8);
+  if (!tutti.length) { sug.style.display = 'none'; return; }
+  sug.innerHTML = tutti.map(s => `<div onclick="selStatoRes('${s[0]}','${s[1]}')">${nomeStatoVisualizzato(s[1])}</div>`).join('');
+  sug.style.display = 'block';
+}
+function selStatoRes(codice, nome) {
+  document.getElementById('q-stato-res-search').value = nomeStatoVisualizzato(nome);
+  document.getElementById('q-stato-res-codice').value = codice;
+  document.getElementById('q-stato-res-suggestions').style.display = 'none';
+}
+function cercaComuneRes() {
+  const q = document.getElementById('q-comune-res-search').value.toUpperCase().trim();
+  const sug = document.getElementById('q-comune-res-suggestions');
+  if (q.length < 2) { sug.style.display = 'none'; return; }
+  const results = (typeof AW_COMUNI !== 'undefined' ? AW_COMUNI : []).filter(c => c[1].startsWith(q)).slice(0, 8);
+  if (!results.length) { sug.style.display = 'none'; return; }
+  sug.innerHTML = results.map(c => `<div onclick="selComuneRes('${c[0]}','${c[1]}','${c[2]}')">${c[1]} <span style="color:var(--muted)">(${c[2]})</span></div>`).join('');
+  sug.style.display = 'block';
+}
+function selComuneRes(codice, nome, provincia) {
+  document.getElementById('q-comune-res-search').value = nome;
+  document.getElementById('q-comune-res-codice').value = codice;
+  document.getElementById('q-comune-res-provincia').value = provincia;
+  document.getElementById('q-comune-res-suggestions').style.display = 'none';
 }
 
 document.addEventListener('click', e => {
