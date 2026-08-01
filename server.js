@@ -821,6 +821,58 @@ app.post('/api/messaggi/invia', async (req, res) => {
 });
 
 
+function fmtD(d){const dt=new Date(d);return `${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}`;}
+app.get('/api/ross1000/genera-xml', async (req,res) => {
+  try{
+    const{mese,anno}=req.query;
+    const meseN=parseInt(mese)||new Date().getMonth()+1,annoN=parseInt(anno)||new Date().getFullYear();
+    const{data:cfg}=await supabase.from('impostazioni').select('*').eq('struttura_id',req.strutturaId).in('chiave',['ross1000_codice']);
+    const impost={}; (cfg||[]).forEach(r=>impost[r.chiave]=r.valore);
+    if(!impost.ross1000_codice)return res.status(400).json({error:'Codice Ross1000 non configurato'});
+    const{data:appartamenti}=await supabase.from('appartamenti').select('id').eq('struttura_id',req.strutturaId);
+    const totCamere=(appartamenti||[]).length||1;
+    const totPostiLetto=totCamere*2;
+    const dI=`${annoN}-${String(meseN).padStart(2,'0')}-01`;
+    const ultimoGiorno=new Date(annoN,meseN,0).getDate();
+    const dF=`${annoN}-${String(meseN).padStart(2,'0')}-${String(ultimoGiorno).padStart(2,'0')}`;
+    const{data:prens}=await supabase.from('prenotazioni').select('*').eq('struttura_id',req.strutturaId).lt('data_arrivo',dF).gt('data_partenza',dI).neq('stato','cancellata').neq('fonte','blocco');
+    const ids=(prens||[]).map(p=>p.id);
+    const{data:ospiti}=ids.length?await supabase.from('ospiti').select('*').eq('struttura_id',req.strutturaId).in('prenotazione_id',ids):{data:[]};
+    const ospitiPerPren={};
+    (ospiti||[]).forEach(o=>{(ospitiPerPren[o.prenotazione_id]=ospitiPerPren[o.prenotazione_id]||[]).push(o);});
+    let movimenti='';
+    for(let g=1; g<=ultimoGiorno; g++){
+      const dataStr=`${annoN}-${String(meseN).padStart(2,'0')}-${String(g).padStart(2,'0')}`;
+      const df=fmtD(dataStr);
+      const attivePren=(prens||[]).filter(p=>p.data_arrivo<=dataStr && p.data_partenza>dataStr);
+      const camereoccupate=attivePren.length;
+      const apertura=camereoccupate>0?'SI':'NO';
+      let arrivi='',partenze='';
+      for(const pren of (prens||[]).filter(p=>p.data_arrivo===dataStr)){
+        const osps=ospitiPerPren[pren.id]||[];
+        osps.forEach((o,idx)=>{
+          const isCapo=idx===0,id=`${pren.id}-${o.id}`.substring(0,20);
+          const nascita=o.data_nascita?fmtD(o.data_nascita):'19800101';
+          const citt=o.nazionalita==='ITA'||!o.nazionalita?'100000100':'100000200';
+          const canale=pren.fonte==='Airbnb'||pren.fonte==='Booking'?'Indiretta web':'Diretta web';
+          arrivi+=`<arrivo><idswh>${id}</idswh><tipoalloggiato>${isCapo?'16':'19'}</tipoalloggiato><idcapo>${isCapo?'':pren.id+'-'+osps[0].id}</idcapo><sesso>${o.sesso||'M'}</sesso><cittadinanza>${citt}</cittadinanza><statoresidenza>${citt}</statoresidenza><luogoresidenza>${o.luogo_nascita||''}</luogoresidenza><datanascita>${nascita}</datanascita><statonascita>${citt}</statonascita><comunenascita></comunenascita><tipoturismo>Escursionistico/Naturalistico</tipoturismo><mezzotrasporto>Auto</mezzotrasporto><canaleprenotazione>${canale}</canaleprenotazione><titolostudio></titolostudio><professione></professione><esenzioneimposta></esenzioneimposta></arrivo>`;
+        });
+      }
+      for(const pren of (prens||[]).filter(p=>p.data_partenza===dataStr)){
+        const osps=ospitiPerPren[pren.id]||[];
+        osps.forEach((o,idx)=>{
+          const isCapo=idx===0,id=`${pren.id}-${o.id}`.substring(0,20);
+          partenze+=`<partenza><idswh>${id}</idswh><tipoalloggiato>${isCapo?'16':'19'}</tipoalloggiato><arrivo>${fmtD(pren.data_arrivo)}</arrivo></partenza>`;
+        });
+      }
+      movimenti+=`<movimento><data>${df}</data><struttura><apertura>${apertura}</apertura><camereoccupate>${camereoccupate}</camereoccupate><cameredisponibili>${totCamere}</cameredisponibili><lettidisponibili>${totPostiLetto}</lettidisponibili></struttura>${arrivi?`<arrivi>${arrivi}</arrivi>`:''}${partenze?`<partenze>${partenze}</partenze>`:''}</movimento>`;
+    }
+    const xml=`<?xml version="1.0" encoding="UTF-8"?><movimenti><codice>${impost.ross1000_codice}</codice><prodotto>Gestaway</prodotto>${movimenti}</movimenti>`;
+    res.setHeader('Content-Type','application/xml');
+    res.setHeader('Content-Disposition',`attachment; filename="ross1000_${annoN}${String(meseN).padStart(2,'0')}.xml"`);
+    res.send(xml);
+  }catch(e){res.status(500).json({error:e.message});}
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });

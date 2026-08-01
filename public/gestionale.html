@@ -786,6 +786,10 @@
 <script src="/tabelle_aw.js"></script>
 <script>
 let appartamenti = [];
+async function apiFetch(url) {
+  const token = localStorage.getItem('auth_token') || '';
+  return fetch(url, { headers: { 'x-auth-token': token } });
+}
 let prenotazioni = [];
 let currentPage = 'dashboard';
 let authToken = localStorage.getItem('auth_token') || '';
