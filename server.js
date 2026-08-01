@@ -158,7 +158,7 @@ const PIANI = {
   professionale: process.env.STRIPE_PRICE_PROFESSIONALE,
   domus: process.env.STRIPE_PRICE_DOMUS,
 };
-const PIANI_SENZA_TRIAL = ['domus'];
+const PIANI_SENZA_TRIAL = ['base', 'professionale', 'domus', 'personalizzato'];
 const CIN_REGEX = /^IT\d{3}\d{3}[A-Z0-9]{2}[A-Z0-9]{1,8}$/;
 
 app.post('/api/checkout', async (req, res) => {
