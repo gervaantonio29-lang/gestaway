@@ -62,7 +62,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy);paddi
 .feat-desc{color:var(--muted);font-size:14px;line-height:1.7}
 /* PRICING */
 .pricing{background:white;padding:6rem 2rem}
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:3rem}
+/* minmax 300px -> 3 colonne: con 5 piani si ottiene 3+2, equilibrato.
+   Con 230px ne entravano 4 e il quinto restava solo con tre buchi accanto. */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:3rem}
 .price-card{border:2px solid var(--border);border-radius:12px;padding:2.5rem 2rem;position:relative;transition:all 0.2s}
 .price-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(26,46,74,0.1)}
 .price-card.featured{border-color:var(--red)}
