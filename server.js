@@ -89,36 +89,13 @@ async function requireAuth(req, res, next) {
   next();
 }
 
-app.post('/api/register', async (req, res) => {
-  const { nome, email, password, cin } = req.body;
-  if (!nome || !email || !password) return res.status(400).json({ error: 'Nome, email e password sono obbligatori.' });
-  if (password.length < 8) return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri.' });
-
-  const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
-  if (esistente) return res.status(409).json({ error: 'Esiste gia\u0300 un account con questa email.' });
-
-  const trialScade = new Date();
-  trialScade.setDate(trialScade.getDate() + 14);
-
-  const { data: struttura, error: erroreStruttura } = await supabase
-    .from('strutture')
-    .insert({ nome, email, cin: cin || null, piano: 'base', stato: 'trial', trial_scade_il: trialScade.toISOString().slice(0, 10) })
-    .select().single();
-  if (erroreStruttura) return res.status(500).json({ error: erroreStruttura.message });
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  const { data: utente, error: erroreUtente } = await supabase
-    .from('utenti')
-    .insert({ struttura_id: struttura.id, email, password_hash: passwordHash, ruolo: 'owner' })
-    .select().single();
-  if (erroreUtente) {
-    await supabase.from('strutture').delete().eq('id', struttura.id);
-    return res.status(500).json({ error: erroreUtente.message });
-  }
-
-  const token = generaToken();
-  await supabase.from('sessioni').insert({ token, struttura_id: struttura.id, utente_id: utente.id });
-  res.json({ ok: true, token, struttura: { id: struttura.id, nome: struttura.nome, piano: struttura.piano, stato: struttura.stato } });
+// Registrazione libera disattivata: creava strutture con stato 'trial' e
+// sessione valida senza alcun pagamento, e nulla faceva poi scadere la prova.
+// L'unico ingresso e' il pagamento su Stripe (/api/checkout -> webhook ->
+// provisionaStruttura). Per creare un account senza pagamento, inserire a mano
+// le righe in 'strutture' e 'utenti'.
+app.post('/api/register', (req, res) => {
+  res.status(403).json({ error: 'Registrazione non disponibile: attiva un piano da /attiva.' });
 });
 
 app.post('/api/login', async (req, res) => {

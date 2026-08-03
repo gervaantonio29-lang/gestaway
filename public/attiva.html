@@ -64,7 +64,7 @@ input:focus{border-color:var(--red)}
 
 <div class="container">
   <h1>Attiva il tuo account</h1>
-  <p class="subtitle">Scegli il piano e inizia subito: 14 giorni di prova gratuita, nessun costo di setup, disdici quando vuoi.</p>
+  <p class="subtitle">Scegli il piano e inizia subito: attivazione immediata, nessun costo di setup, disdici quando vuoi.</p>
 
   <div class="piani">
     <div class="piano-card" data-piano="base" onclick="selezionaPiano(this)">
@@ -103,7 +103,6 @@ input:focus{border-color:var(--red)}
       <div class="piano-name">Domus</div>
       <div class="piano-price">€59<span>/mese</span></div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px">IVA inclusa · addebito immediato</div>
-      <div style="font-size:12px;color:var(--red);font-weight:600;margin:4px 0 0">Senza prova gratuita · addebito immediato</div>
       <div class="piano-desc">Il gestionale con sito web e dominio inclusi.</div>
       <ul class="piano-features">
         <li>Sito web professionale incluso</li>
@@ -168,21 +167,19 @@ input:focus{border-color:var(--red)}
       <label for="termini">Ho letto e accetto i <a href="/termini.html" target="_blank">Termini e Condizioni</a> e la <a href="/privacy.html" target="_blank">Privacy Policy</a>, incluso il trattamento dei dati ai sensi del GDPR.</label>
     </div>
     <div class="error" id="errore">Compila tutti i campi e accetta i termini.</div>
-    <button class="btn-submit" id="btnPaga" onclick="procediPagamento()">🔒 Inizia la prova gratuita</button>
-    <p id="notaPagamento" style="text-align:center;font-size:12px;color:var(--muted);margin-top:1rem">14 giorni gratis · Nessun addebito ora · Pagamento sicuro tramite Stripe · Disdici quando vuoi</p>
+    <button class="btn-submit" id="btnPaga" onclick="procediPagamento()">🔒 Procedi al pagamento</button>
+    <p id="notaPagamento" style="text-align:center;font-size:12px;color:var(--muted);margin-top:1rem">Addebito immediato · Pagamento sicuro tramite Stripe · Disdici quando vuoi</p>
   </div>
 </div>
 
 <script>
 let pianoSelezionato = null;
 
-// Piani senza prova gratuita (devono combaciare con PIANI_SENZA_TRIAL nel server.js)
-const PIANI_SENZA_TRIAL = ['domus'];
-
+// Nessun piano ha la prova gratuita: in server.js PIANI_SENZA_TRIAL li elenca
+// tutti, quindi Stripe addebita sempre subito. Prima qui c'era solo 'domus' e
+// sugli altri piani il bottone prometteva una prova che non veniva concessa.
 function labelPagamento() {
-  return PIANI_SENZA_TRIAL.includes(pianoSelezionato)
-    ? '🔒 Procedi al pagamento'
-    : '🔒 Inizia la prova gratuita';
+  return '🔒 Procedi al pagamento';
 }
 
 function selezionaPiano(card) {
@@ -196,9 +193,7 @@ function selezionaPiano(card) {
   const btn = document.getElementById('btnPaga');
   if (!btn.disabled) btn.textContent = labelPagamento();
   const nota = document.getElementById('notaPagamento');
-  if (nota) nota.textContent = PIANI_SENZA_TRIAL.includes(pianoSelezionato)
-    ? 'Addebito immediato · Pagamento sicuro tramite Stripe · Disdici quando vuoi'
-    : '14 giorni gratis · Nessun addebito ora · Pagamento sicuro tramite Stripe · Disdici quando vuoi';
+  if (nota) nota.textContent = 'Addebito immediato · Pagamento sicuro tramite Stripe · Disdici quando vuoi';
 }
 
 async function procediPagamento() {
