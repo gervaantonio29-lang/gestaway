@@ -258,6 +258,9 @@
 
   <main class="main">
 
+    <!-- Avviso pagamento non riuscito: mostrato finche' la struttura e' "in ritardo" -->
+    <div id="avviso-abbonamento" style="display:none;background:#FDF3E3;border:1px solid #E8C88A;border-left:4px solid #BA7517;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:1rem;font-size:13.5px;color:#7A4E0A"></div>
+
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="page-header">
@@ -847,7 +850,22 @@ async function doLogout() { await api('/api/logout', 'POST'); showLogin(); }
 async function checkAuth() {
   if (authToken) {
     const r = await fetch('/api/stats', { headers: { 'x-auth-token': authToken } });
-    if (r.ok) { showApp(); loadDashboard(); return; }
+    if (r.status === 402) {
+      const d = await r.json().catch(() => ({}));
+      mostraSospeso(d.error);
+      return;
+    }
+    if (r.ok) {
+      showApp();
+      loadDashboard();
+      // Stato abbonamento: /api/sessione resta accessibile anche quando la
+      // struttura e' in ritardo, cosi' si puo' avvisare senza bloccare.
+      try {
+        const s = await fetch('/api/sessione', { headers: { 'x-auth-token': authToken } }).then(x => x.json());
+        aggiornaAvvisoAbbonamento(s?.struttura);
+      } catch(e) {}
+      return;
+    }
   }
   showLogin();
 }
@@ -857,7 +875,51 @@ async function api(path, method = 'GET', body) {
   authToken = localStorage.getItem('auth_token') || '';
   const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken }, body: body ? JSON.stringify(body) : undefined });
   if (r.status === 401) { showLogin(); return {}; }
+  // 402: abbonamento sospeso. Senza questo ramo le pagine restavano vuote
+  // senza spiegare il motivo.
+  if (r.status === 402) {
+    const d = await r.json().catch(() => ({}));
+    mostraSospeso(d.error);
+    return {};
+  }
   return r.json();
+}
+
+function mostraSospeso(messaggio) {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  const mh = document.getElementById('mobile-header');
+  if (mh) mh.style.display = 'none';
+  let el = document.getElementById('schermata-sospeso');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'schermata-sospeso';
+    el.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;max-width:460px;text-align:center">
+    <div style="font-size:2.5rem;margin-bottom:1rem">🔒</div>
+    <h2 style="font-size:20px;margin-bottom:0.75rem">Abbonamento sospeso</h2>
+    <p style="color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:1.5rem">
+      ${messaggio || 'Regolarizza il pagamento per riattivare il gestionale.'}
+    </p>
+    <a href="mailto:info@gestaway.com?subject=Riattivazione%20abbonamento%20Gestaway" class="btn btn-primary" style="display:inline-block;text-decoration:none">Contattaci per riattivare</a>
+    <div style="margin-top:1rem"><a href="#" onclick="doLogout();return false" style="color:var(--muted);font-size:13px">Esci</a></div>
+  </div>`;
+  el.style.display = 'flex';
+}
+
+function aggiornaAvvisoAbbonamento(struttura) {
+  const el = document.getElementById('avviso-abbonamento');
+  if (!el || !struttura) return;
+  if (struttura.stato === 'in_ritardo' && struttura.sospensione_il) {
+    const d = new Date(struttura.sospensione_il);
+    const giorni = Math.max(0, Math.ceil((d - new Date()) / 86400000));
+    el.innerHTML = `<strong>⚠️ Pagamento non riuscito.</strong> Il gestionale resta attivo ancora ${giorni} giorn${giorni === 1 ? 'o' : 'i'}, fino al ${d.toLocaleDateString('it-IT')}. Aggiorna il metodo di pagamento per non perdere l'accesso.`;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ── Navigation ──────────────────────────────────────────────────────────────

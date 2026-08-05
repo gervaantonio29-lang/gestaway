@@ -50,15 +50,81 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   }
   try {
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      await provisionaStruttura(session);
+      await provisionaStruttura(event.data.object);
+    } else if (event.type === 'invoice.payment_failed') {
+      await pagamentoFallito(event.data.object);
+    } else if (event.type === 'invoice.paid' || event.type === 'invoice.payment_succeeded') {
+      await pagamentoRiuscito(event.data.object);
+    } else if (event.type === 'customer.subscription.deleted') {
+      await abbonamentoDisdetto(event.data.object);
     }
     res.json({ received: true });
   } catch (err) {
-    console.error('[Stripe Webhook] Errore provisioning:', err.message);
+    console.error('[Stripe Webhook] Errore:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
+
+// Giorni di tolleranza dopo un pagamento fallito, prima della sospensione.
+const GIORNI_TOLLERANZA = 10;
+
+async function trovaStruttura(customerId, subscriptionId) {
+  if (subscriptionId) {
+    const { data } = await supabase.from('strutture').select('*').eq('stripe_subscription_id', subscriptionId).single();
+    if (data) return data;
+  }
+  if (customerId) {
+    const { data } = await supabase.from('strutture').select('*').eq('stripe_customer_id', customerId).single();
+    if (data) return data;
+  }
+  return null;
+}
+
+// Pagamento fallito: non si sospende subito. La struttura entra "in ritardo" e
+// continua a funzionare fino alla scadenza, cosi' l'host non resta fuori dal
+// gestionale mentre ha ospiti in casa e schedine da mandare in Questura.
+async function pagamentoFallito(invoice) {
+  const s = await trovaStruttura(invoice.customer, invoice.subscription);
+  if (!s) { console.warn('[Stripe] Pagamento fallito: struttura non trovata'); return; }
+  if (s.stato === 'in_ritardo') return; // scadenza gia' fissata, non la sposto in avanti
+  const scadenza = new Date();
+  scadenza.setDate(scadenza.getDate() + GIORNI_TOLLERANZA);
+  const { error } = await supabase.from('strutture')
+    .update({ stato: 'in_ritardo', sospensione_il: scadenza.toISOString().slice(0, 10) })
+    .eq('id', s.id);
+  if (error) { console.error('[Stripe] Errore stato in_ritardo:', error.message); return; }
+  console.log(`[Stripe] ${s.nome}: pagamento fallito, sospensione il ${scadenza.toISOString().slice(0, 10)}`);
+  avvisaStruttura(s, 'Pagamento non riuscito',
+    `Il pagamento dell'abbonamento Gestaway non e' andato a buon fine.\n\n` +
+    `Il gestionale resta attivo fino al ${scadenza.toLocaleDateString('it-IT')}. ` +
+    `Aggiorna il metodo di pagamento per non perdere l'accesso.`);
+}
+
+async function pagamentoRiuscito(invoice) {
+  const s = await trovaStruttura(invoice.customer, invoice.subscription);
+  if (!s || s.stato === 'attivo') return;
+  const { error } = await supabase.from('strutture')
+    .update({ stato: 'attivo', sospensione_il: null })
+    .eq('id', s.id);
+  if (error) { console.error('[Stripe] Errore riattivazione:', error.message); return; }
+  console.log(`[Stripe] ${s.nome}: pagamento ricevuto, struttura riattivata`);
+}
+
+async function abbonamentoDisdetto(subscription) {
+  const s = await trovaStruttura(subscription.customer, subscription.id);
+  if (!s) return;
+  const { error } = await supabase.from('strutture').update({ stato: 'sospeso' }).eq('id', s.id);
+  if (error) { console.error('[Stripe] Errore sospensione:', error.message); return; }
+  console.log(`[Stripe] ${s.nome}: abbonamento disdetto, struttura sospesa`);
+}
+
+async function avvisaStruttura(struttura, oggetto, testo) {
+  try {
+    if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) return;
+    const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
+    await t.sendMail({ from: process.env.SYSTEM_EMAIL_USER, to: struttura.email, subject: `Gestaway — ${oggetto}`, text: testo });
+  } catch (e) { console.error('[Stripe] Errore invio avviso:', e.message); }
+}
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -86,6 +152,32 @@ async function requireAuth(req, res, next) {
   }
   req.strutturaId = sessione.struttura_id;
   req.utenteId = sessione.utente_id;
+
+  // Logout e lettura sessione restano sempre accessibili: servono per uscire e
+  // per far vedere al frontend il motivo del blocco.
+  if (req.path === '/api/logout' || req.path === '/api/sessione') return next();
+
+  const { data: struttura } = await supabase
+    .from('strutture').select('stato, sospensione_il').eq('id', sessione.struttura_id).single();
+  if (struttura) {
+    // Scaduti i giorni di tolleranza la sospensione diventa effettiva.
+    if (struttura.stato === 'in_ritardo' && struttura.sospensione_il &&
+        struttura.sospensione_il < new Date().toISOString().slice(0, 10)) {
+      await supabase.from('strutture').update({ stato: 'sospeso' }).eq('id', sessione.struttura_id);
+      struttura.stato = 'sospeso';
+    }
+    // Si blocca solo 'sospeso': gli altri stati (attivo, in_ritardo, o valori
+    // preesistenti) continuano a funzionare, per non chiudere fuori nessuno
+    // per via di uno stato non previsto.
+    if (struttura.stato === 'sospeso') {
+      return res.status(402).json({
+        error: 'Abbonamento sospeso. I dati sono conservati: regolarizza il pagamento per riattivare il gestionale.',
+        sospeso: true,
+      });
+    }
+    req.strutturaStato = struttura.stato;
+    req.sospensioneIl = struttura.sospensione_il;
+  }
   next();
 }
 
