@@ -328,11 +328,6 @@ app.post('/api/channex/webhook', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/debug/check-colonna-sospensione', async (req, res) => {
-  const r = await supabase.from('strutture').select('id, stato, sospensione_il').limit(1);
-  res.json({ error: r.error || null, sample: r.data || null });
-});
-
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
