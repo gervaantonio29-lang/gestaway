@@ -942,6 +942,24 @@ app.get('/api/ross1000/genera-xml', async (req,res) => {
     res.send(xml);
   }catch(e){res.status(500).json({error:e.message});}
 });
+app.get('/api/debug/diagnosi-rete', requireAuth, async (req, res) => {
+  const https = require('https');
+  const testConnessione = (host, timeout=8000) => new Promise((resolve) => {
+    const start = Date.now();
+    const r = https.request({ hostname: host, path: '/', method: 'GET', timeout }, (resp) => {
+      resolve({ host, ok: true, status: resp.statusCode, ms: Date.now()-start });
+      resp.resume();
+    });
+    r.on('timeout', () => { r.destroy(); resolve({ host, ok: false, errore: 'TIMEOUT', ms: Date.now()-start }); });
+    r.on('error', (e) => resolve({ host, ok: false, errore: e.message, ms: Date.now()-start }));
+    r.end();
+  });
+  const risultati = await Promise.all([
+    testConnessione('www.google.com'),
+    testConnessione('alloggiatiweb.poliziadistato.it'),
+  ]);
+  res.json({ risultati });
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
