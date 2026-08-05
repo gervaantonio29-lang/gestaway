@@ -92,6 +92,98 @@ stop-sell sulle date agli altri canali. Prima si aspettava il sync periodico e n
 frattempo un'altra OTA poteva vendere le stesse notti: è successo davvero
 (due ospiti confermati sullo stesso appartamento per l'8-11 ottobre).
 
+### CSS e viste mobile (allineate a cademaricomo, tutte le pagine)
+
+Stesso pattern di regressione del punto sopra: `713fe0c` aveva riportato anche
+tutta la parte CSS/mobile a una base vecchia. Corretto di nuovo, questa volta
+pagina per pagina su tutto il file:
+
+- **Il blocco `@media (max-width: 768px)` deve restare l'ULTIMO blocco** nel
+  `<style>`, subito prima di `</style>`. Se ci finisce qualcosa dopo, quel
+  qualcosa vince anche su schermi piccoli a parità di specificità: è la causa
+  di quasi tutte le rotture mobile viste finora. **Non aggiungere mai CSS dopo
+  quel blocco.**
+- `.layout` ha `min-width: 0`. Senza, essendo flex item dentro un flex
+  container, non si restringe mai e causa overflow orizzontale su mobile.
+  Stessa logica per le griglie: `minmax(0, 1fr)`, mai `1fr` nudo, nelle
+  `.form-row`/`.form-row.three`.
+- Pattern per ogni vista con layout diverso desktop/mobile: due contenitori,
+  uno con classe `.desktop-only` (o `.msg-desktop-only` per Messaggi) e uno
+  con `.mobile-only`/`.msg-mobile-only`. Le classi `-mobile-only` sono
+  `display:none` di base e diventano `display:block/flex` dentro il blocco
+  `@media` finale. **Non usare `window.innerWidth` per nascondere/mostrare via
+  JS**: le classi CSS bastano e sopravvivono al resize senza bisogno di
+  ridisegnare; `window.innerWidth` va usato solo per **decidere quale dato
+  caricare** (es. `loadThreads()`), non per la visibilità.
+- **Analitiche**: il selettore è una `<select id="an-metric-select">` con
+  `onchange="selezionaMetrica(this.value)"`, non più la sidebar
+  `#an-metric-nav` con `.metric-nav-item`. Se `#an-metric-nav` ricompare nel
+  file, è di nuovo la versione vecchia.
+- **Prenotazioni**: `.table-wrap` ha classe `desktop-only`, più
+  `#pren-mobile-list.mobile-only` popolato da `renderPrenotazioni()` con le
+  stesse card (`👥` ospiti, `📝` nota, bottone messaggio rapido per
+  prenotazioni `channex_`). Occhio: `renderPrenotazioni()` gira solo quando
+  la vista è `'lista'` (`setView('lista')`), mai in automatico entrando nella
+  pagina (di default è `'calendario'`) — è così anche su cademaricomo, non è
+  un bug da "sistemare".
+- **Messaggi**: `#msg-iframe-wrap.msg-desktop-only` (iframe Channex) +
+  `#msg-mobile-wrap.msg-mobile-only` (inbox custom: lista thread, ricerca,
+  chat a schermo intero). `loadThreads()` fa il fetch di
+  `/api/messaggi/threads` una volta sola e poi si biforca su
+  `window.innerWidth <= 768`: se mobile chiama `renderMobileThreadsList()`,
+  se desktop richiede `/api/channex/iframe-token` e monta l'iframe.
+  **Importante:** a differenza di cademaricomo (che ha il `property_id`
+  fisso nell'URL dell'iframe), gestaway usa `data.channex_property_id`
+  restituito dal token endpoint — è multi-tenant, va mantenuto così, non
+  tornare all'id fisso copiando cademaricomo alla lettera.
+- Rimosso il bottone "🔄 Sincronizza (forza)" di Prenotazioni e la funzione
+  `leggiEmailAirbnb()`: chiamava `/api/email/leggi-airbnb`, endpoint mai
+  esistito su gestaway (era già stato tolto da cademaricomo su richiesta
+  esplicita del cliente mesi fa).
+
+Verificato con Puppeteer (file `_check_full.js`, cancellato dopo l'uso — se
+serve ricrearlo, monkey-patchare `window.api` invece di rigenerare mock)
+su tutte le 9 pagine a 1280px e 375px: zero errori JS, toggle desktop/mobile
+corretto ovunque, inbox mobile Messaggi funzionante end-to-end.
+
+## Abbonamenti Stripe e sospensione struttura (nuovo, non c'era nel giro precedente)
+
+- **`/api/register` è disattivato** (torna 403). Creava strutture `trial` con
+  sessione che non scadeva mai e nessun pagamento: era un buco aperto. L'unico
+  modo per entrare ora è pagare su Stripe (`/attiva` → checkout → webhook →
+  `provisionaStruttura()`), oppure creare la riga a mano in `strutture` +
+  `utenti` (caso Cà de' Mari, che non ha Stripe).
+- **Nessun piano ha più il trial.** `PIANI_SENZA_TRIAL` includeva prima solo
+  `['domus']` lato frontend (`attiva.html`) contro tutti e quattro i piani
+  lato backend: mismatch corretto, ora `attiva.html` mostra sempre "Procedi al
+  pagamento" e "Addebito immediato", mai più "14 giorni gratis". Se si
+  reintroduce un trial, aggiornare **entrambi** i file, non solo uno.
+- **Webhook Stripe** ora gestisce, oltre a `checkout.session.completed`:
+  `invoice.payment_failed` → `pagamentoFallito()` (stato `in_ritardo`,
+  `sospensione_il` = oggi + `GIORNI_TOLLERANZA` (10) giorni, email se
+  `SYSTEM_EMAIL_USER`/`PASS` configurate), `invoice.paid`/
+  `invoice.payment_succeeded` → `pagamentoRiuscito()` (torna `attivo`,
+  `sospensione_il: null`), `customer.subscription.deleted` →
+  `abbonamentoDisdetto()` (sospensione immediata, disdetta volontaria).
+- **`requireAuth`** (in `server.js`) legge `stato`/`sospensione_il` della
+  struttura ad ogni richiesta autenticata, fa scattare da solo il passaggio
+  `in_ritardo` → `sospeso` quando la data è passata, e blocca con **402**
+  (`{ error, sospeso: true }`) solo se `stato === 'sospeso'`. Fail-open di
+  proposito: qualsiasi altro stato (compresi valori imprevisti) passa, così
+  un bug nello stato non chiude fuori tutti. `/api/logout` e `/api/sessione`
+  restano accessibili anche da sospesi.
+  La colonna `sospensione_il` **esiste già** su Supabase, verificato.
+- Frontend: l'`api()` wrapper e la UI devono gestire il 402 mostrando il
+  blocco "abbonamento sospeso", non trattarlo come un errore generico.
+
+## Onboarding
+
+`ONBOARDING.md` in questo repo è la procedura completa di attivazione di un
+cliente nuovo (o della migrazione di Cà de' Mari), scritta leggendo il codice
+attuale — se si cambiano i piani, i limiti (`max_strutture_fisiche`) o il
+flusso Stripe, va aggiornato insieme al codice, altrimenti si scollega da
+quello che il gestionale fa davvero.
+
 ## Punti aperti
 
 1. **Bottone unico "Sincronizza tutto"** — non ripristinato. Dipendeva da
