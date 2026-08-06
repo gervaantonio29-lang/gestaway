@@ -1017,6 +1017,15 @@ app.get('/api/debug/room-types/:propertyId', requireAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/api/debug/rate-plans/:propertyId', requireAuth, async (req, res) => {
+  try {
+    const r = await channex.client.get('/rate_plans?filter[property_id]=' + req.params.propertyId);
+    const lista = (r?.data || []).map(rp => ({ id: rp.id, nome: rp.attributes?.title, room_type_id: rp.relationships?.room_type?.data?.id }));
+    res.json({ lista });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
