@@ -971,13 +971,15 @@ app.post('/api/password-reset/richiedi', async (req, res) => {
     if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) return res.status(500).json({ error: 'Sistema email non configurato' });
     const codice = String(Math.floor(100000 + Math.random() * 900000));
     codiciResetPasswordGestaway[emailNorm] = { codice, scadenza: Date.now() + 10 * 60 * 1000 };
+    console.log('[RESET DEBUG] Utente trovato:', utente.email, '| Invio a:', emailNorm, '| Codice:', codice);
     const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
-    await t.sendMail({
+    const infoInvio = await t.sendMail({
       from: process.env.SYSTEM_EMAIL_USER,
       to: emailNorm,
       subject: 'Gestaway — Codice reset password',
       text: `Il tuo codice per reimpostare la password è: ${codice}\n\nValido per 10 minuti. Se non hai richiesto questo codice, ignora questa email.`
     });
+    console.log('[RESET DEBUG] Email inviata, risposta SMTP:', JSON.stringify(infoInvio));
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
