@@ -328,6 +328,31 @@ app.post('/api/channex/webhook', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+const codiciResetPasswordGestaway = {};
+app.post('/api/password-reset/richiedi', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email mancante' });
+    const emailNorm = email.toLowerCase().trim();
+    const { data: utente } = await supabase.from('utenti').select('*').eq('email', emailNorm).single();
+    if (!utente) return res.status(400).json({ error: 'Nessun account trovato con questa email' });
+    if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) return res.status(500).json({ error: 'Sistema email non configurato' });
+    const codice = String(Math.floor(100000 + Math.random() * 900000));
+    codiciResetPasswordGestaway[emailNorm] = { codice, scadenza: Date.now() + 10 * 60 * 1000 };
+    console.log('[RESET DEBUG] Utente trovato:', utente.email, '| Invio a:', emailNorm, '| Codice:', codice);
+    const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
+    const infoInvio = await t.sendMail({
+      from: process.env.SYSTEM_EMAIL_USER,
+      to: emailNorm,
+      subject: 'Gestaway — Codice reset password',
+      text: `Il tuo codice per reimpostare la password è: ${codice}\n\nValido per 10 minuti. Se non hai richiesto questo codice, ignora questa email.`
+    });
+    console.log('[RESET DEBUG] Email inviata, risposta SMTP:', JSON.stringify(infoInvio));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
@@ -960,31 +985,7 @@ app.get('/api/debug/diagnosi-rete', requireAuth, async (req, res) => {
   ]);
   res.json({ risultati });
 });
-const codiciResetPasswordGestaway = {};
-app.post('/api/password-reset/richiedi', async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email mancante' });
-    const emailNorm = email.toLowerCase().trim();
-    const { data: utente } = await supabase.from('utenti').select('*').eq('email', emailNorm).single();
-    if (!utente) return res.status(400).json({ error: 'Nessun account trovato con questa email' });
-    if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) return res.status(500).json({ error: 'Sistema email non configurato' });
-    const codice = String(Math.floor(100000 + Math.random() * 900000));
-    codiciResetPasswordGestaway[emailNorm] = { codice, scadenza: Date.now() + 10 * 60 * 1000 };
-    console.log('[RESET DEBUG] Utente trovato:', utente.email, '| Invio a:', emailNorm, '| Codice:', codice);
-    const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
-    const infoInvio = await t.sendMail({
-      from: process.env.SYSTEM_EMAIL_USER,
-      to: emailNorm,
-      subject: 'Gestaway — Codice reset password',
-      text: `Il tuo codice per reimpostare la password è: ${codice}\n\nValido per 10 minuti. Se non hai richiesto questo codice, ignora questa email.`
-    });
-    console.log('[RESET DEBUG] Email inviata, risposta SMTP:', JSON.stringify(infoInvio));
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+
 app.post('/api/password-reset/conferma', async (req, res) => {
   try {
     const { email, codice, nuovaPassword } = req.body;
