@@ -1008,6 +1008,15 @@ app.get('/api/debug/diagnosi-rete', requireAuth, async (req, res) => {
   ]);
   res.json({ risultati });
 });
+app.get('/api/debug/room-types/:propertyId', requireAuth, async (req, res) => {
+  try {
+    const r = await channex.client.get('/room_types?filter[property_id]=' + req.params.propertyId);
+    const lista = (r?.data || []).map(rt => ({ id: rt.id, nome: rt.attributes?.title, occupazione: rt.attributes?.default_occupancy }));
+    res.json({ lista, raw: r });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
