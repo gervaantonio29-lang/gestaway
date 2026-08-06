@@ -253,6 +253,24 @@
     </div>
     <div id="login-error" style="color:var(--red);font-size:13px;margin-bottom:0.75rem;min-height:18px"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Accedi</button>
+    <div style="margin-top:0.75rem"><a href="#" onclick="event.preventDefault();toggleResetPassword()" style="font-size:12px;color:var(--muted)">Password dimenticata?</a></div>
+    <div id="reset-password-box" style="display:none;margin-top:1rem;text-align:left">
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label style="font-size:12px">La tua email</label>
+        <input type="email" id="reset-email" placeholder="tua@email.com" style="width:100%">
+      </div>
+      <button class="btn" style="width:100%;margin-bottom:0.5rem" onclick="richiediCodiceReset()">Invia codice</button>
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label style="font-size:12px">Codice ricevuto via email</label>
+        <input type="text" id="reset-codice" placeholder="123456" style="width:100%">
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label style="font-size:12px">Nuova password</label>
+        <input type="password" id="reset-nuova-password" placeholder="Minimo 6 caratteri" style="width:100%">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="confermaReset()">Reimposta password</button>
+      <div id="reset-status" style="font-size:12px;margin-top:0.5rem"></div>
+    </div>
     <div style="margin-top:1rem;font-size:12px;color:var(--muted)">Non hai un account? <a href="/attiva" style="color:var(--red);font-weight:600">Attiva ora</a></div>
   </div>
 </div>
@@ -889,6 +907,34 @@ async function doLogin() {
   } catch(e) {
     document.getElementById('login-error').textContent = 'Errore di connessione';
   }
+}
+function toggleResetPassword() {
+  const box = document.getElementById('reset-password-box');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+async function richiediCodiceReset() {
+  const email = document.getElementById('reset-email').value;
+  const status = document.getElementById('reset-status');
+  status.textContent = 'Invio in corso...';
+  try {
+    const r = await fetch('/api/password-reset/richiedi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const data = await r.json();
+    if (!r.ok) { status.textContent = '❌ ' + data.error; return; }
+    status.textContent = '✅ Codice inviato via email, controlla la posta';
+  } catch(e) { status.textContent = '❌ ' + e.message; }
+}
+async function confermaReset() {
+  const email = document.getElementById('reset-email').value;
+  const codice = document.getElementById('reset-codice').value;
+  const nuovaPassword = document.getElementById('reset-nuova-password').value;
+  const status = document.getElementById('reset-status');
+  status.textContent = 'Verifica in corso...';
+  try {
+    const r = await fetch('/api/password-reset/conferma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, codice, nuovaPassword }) });
+    const data = await r.json();
+    if (!r.ok) { status.textContent = '❌ ' + data.error; return; }
+    status.textContent = '✅ Password aggiornata! Ora puoi accedere con la nuova password.';
+  } catch(e) { status.textContent = '❌ ' + e.message; }
 }
 
 async function doLogout() { await api('/api/logout', 'POST'); showLogin(); }

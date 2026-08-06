@@ -960,6 +960,47 @@ app.get('/api/debug/diagnosi-rete', requireAuth, async (req, res) => {
   ]);
   res.json({ risultati });
 });
+const codiciResetPasswordGestaway = {};
+app.post('/api/password-reset/richiedi', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email mancante' });
+    const emailNorm = email.toLowerCase().trim();
+    const { data: utente } = await supabase.from('utenti').select('*').eq('email', emailNorm).single();
+    if (!utente) return res.status(400).json({ error: 'Nessun account trovato con questa email' });
+    if (!process.env.SYSTEM_EMAIL_USER || !process.env.SYSTEM_EMAIL_PASS) return res.status(500).json({ error: 'Sistema email non configurato' });
+    const codice = String(Math.floor(100000 + Math.random() * 900000));
+    codiciResetPasswordGestaway[emailNorm] = { codice, scadenza: Date.now() + 10 * 60 * 1000 };
+    const t = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SYSTEM_EMAIL_USER, pass: process.env.SYSTEM_EMAIL_PASS } });
+    await t.sendMail({
+      from: process.env.SYSTEM_EMAIL_USER,
+      to: emailNorm,
+      subject: 'Gestaway — Codice reset password',
+      text: `Il tuo codice per reimpostare la password è: ${codice}\n\nValido per 10 minuti. Se non hai richiesto questo codice, ignora questa email.`
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/api/password-reset/conferma', async (req, res) => {
+  try {
+    const { email, codice, nuovaPassword } = req.body;
+    if (!email || !codice || !nuovaPassword) return res.status(400).json({ error: 'Dati mancanti' });
+    if (nuovaPassword.length < 6) return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
+    const emailNorm = email.toLowerCase().trim();
+    const richiesta = codiciResetPasswordGestaway[emailNorm];
+    if (!richiesta) return res.status(400).json({ error: 'Nessuna richiesta di reset trovata, richiedine una nuova' });
+    if (Date.now() > richiesta.scadenza) { delete codiciResetPasswordGestaway[emailNorm]; return res.status(400).json({ error: 'Codice scaduto, richiedine uno nuovo' }); }
+    if (richiesta.codice !== String(codice).trim()) return res.status(400).json({ error: 'Codice errato' });
+    const passwordHash = await bcrypt.hash(nuovaPassword, 10);
+    await supabase.from('utenti').update({ password_hash: passwordHash }).eq('email', emailNorm);
+    delete codiciResetPasswordGestaway[emailNorm];
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
