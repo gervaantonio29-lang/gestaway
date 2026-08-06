@@ -1095,14 +1095,7 @@ async function cancellaPren(id) {
 }
 
 async function syncTutti() {
-  const apts = await api('/api/appartamenti');
-  let tot = 0;
-  for (const a of apts) {
-    const r = await api('/api/sync/' + a.id, 'POST');
-    tot += r.importati || 0;
-  }
-  toast(`Sincronizzazione completata: ${tot} nuove prenotazioni importate`);
-  loadDashboard();
+  toast('Le prenotazioni si sincronizzano automaticamente tramite Channex, nessuna azione manuale necessaria.');
 }
 
 // ── Appartamenti ─────────────────────────────────────────────────────────────
@@ -1116,8 +1109,6 @@ async function renderAppartamenti() {
         <div><div class="card-title">${a.nome}</div><div class="card-sub">📍 ${a.indirizzo || '—'}</div></div>
         <div style="display:flex;gap:6px;align-items:center">
           ${a.prezzo_base ? `<span style="font-size:12px;color:var(--muted)">Base: <strong>€${a.prezzo_base}</strong></span>` : ''}
-          ${a.ical_airbnb ? '<span class="badge badge-red">Airbnb</span>' : ''}
-          ${a.ical_booking ? '<span class="badge badge-blue">Booking</span>' : ''}
           ${a.switchbot_device_id ? '<span class="badge badge-green">SwitchBot</span>' : ''}
         </div>
       </div>

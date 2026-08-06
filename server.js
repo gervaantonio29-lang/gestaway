@@ -490,24 +490,7 @@ function parseIcal(data, fonte, appartamento_id) {
   return events;
 }
 app.post('/api/sync/:id', async (req, res) => {
-  const { data: apt } = await supabase.from('appartamenti').select('*').eq('id', req.params.id).eq('struttura_id', req.strutturaId).single();
-  if (!apt) return res.status(404).json({ error: 'Non trovato.' });
-  let importati = 0; const dettagli = [];
-  for (const [url, fonte] of [[apt.ical_airbnb, 'Airbnb'], [apt.ical_booking, 'Booking']]) {
-    if (!url) { dettagli.push({ fonte, stato: 'saltato', motivo: 'URL non configurato' }); continue; }
-    try {
-      const data = await fetchUrl(url);
-      const eventiTrovati = parseIcal(data, fonte, apt.id);
-      let importatiFonte = 0;
-      for (const e of eventiTrovati) {
-        if (fonte === 'Airbnb') { const n = (e.ospite || '').toUpperCase(); if (n.includes('NOT AVAILABLE') || n === 'CLOSED' || n === 'BLOCKED') continue; }
-        const { error } = await supabase.from('prenotazioni').upsert({ ...e, struttura_id: req.strutturaId, stato: 'confermata', questura_inviata: 0 }, { onConflict: 'struttura_id,uid' });
-        if (!error) { importati++; importatiFonte++; }
-      }
-      dettagli.push({ fonte, stato: 'ok', eventiNelFeed: eventiTrovati.length, importati: importatiFonte });
-    } catch (e) { dettagli.push({ fonte, stato: 'errore', motivo: e.message }); }
-  }
-  res.json({ ok: true, importati, dettagli });
+  res.status(410).json({ ok: false, error: 'Sincronizzazione iCal disattivata: tutte le prenotazioni passano solo tramite Channex.' });
 });
 
 // ─── QUESTURA (Alloggiati Web) ──────────────────────────────────
