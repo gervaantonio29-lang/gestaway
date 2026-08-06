@@ -353,6 +353,13 @@ app.post('/api/password-reset/richiedi', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.post('/api/admin/crea-struttura-diretta', async (req, res) => {
+  try {
+    const { secret, nome, email, piano, cin, password } = req.body;
+    if (secret !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Non autorizzato' });
+    if (!nome || !email || !password) return res.status(400).json({ error: 'Dati mancanti' });
+    const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
+    if (esistente) return res.status(400).json({ error: 'Utente gia esistente con questa email' });
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
@@ -987,13 +994,7 @@ app.post('/api/password-reset/conferma', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-app.post('/api/admin/crea-struttura-diretta', async (req, res) => {
-  try {
-    const { secret, nome, email, piano, cin, password } = req.body;
-    if (secret !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Non autorizzato' });
-    if (!nome || !email || !password) return res.status(400).json({ error: 'Dati mancanti' });
-    const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
-    if (esistente) return res.status(400).json({ error: 'Utente gia esistente con questa email' });
+
     const passwordHash = await bcrypt.hash(password, 10);
     const { data: struttura, error: e1 } = await supabase.from('strutture').insert({
       nome, email, cin: cin || null, piano: piano || 'base', stato: 'attivo',
