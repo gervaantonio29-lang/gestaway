@@ -360,6 +360,39 @@ app.post('/api/admin/crea-struttura-diretta', async (req, res) => {
     if (!nome || !email || !password) return res.status(400).json({ error: 'Dati mancanti' });
     const { data: esistente } = await supabase.from('utenti').select('id').eq('email', email).single();
     if (esistente) return res.status(400).json({ error: 'Utente gia esistente con questa email' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { data: struttura, error: e1 } = await supabase.from('strutture').insert({
+      nome, email, cin: cin || null, piano: piano || 'base', stato: 'attivo',
+      max_strutture_fisiche: piano === 'professionale' ? 3 : piano === 'personalizzato' ? 999 : 1,
+    }).select().single();
+    if (e1) return res.status(500).json({ error: 'Errore creazione struttura: ' + e1.message });
+    const { error: e2 } = await supabase.from('utenti').insert({
+      struttura_id: struttura.id, email, password_hash: passwordHash, ruolo: 'owner',
+    });
+    if (e2) return res.status(500).json({ error: 'Errore creazione utente: ' + e2.message });
+    res.json({ ok: true, struttura_id: struttura.id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/api/password-reset/conferma', async (req, res) => {
+  try {
+    const { email, codice, nuovaPassword } = req.body;
+    if (!email || !codice || !nuovaPassword) return res.status(400).json({ error: 'Dati mancanti' });
+    if (nuovaPassword.length < 6) return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
+    const emailNorm = email.toLowerCase().trim();
+    const richiesta = codiciResetPasswordGestaway[emailNorm];
+    if (!richiesta) return res.status(400).json({ error: 'Nessuna richiesta di reset trovata, richiedine una nuova' });
+    if (Date.now() > richiesta.scadenza) { delete codiciResetPasswordGestaway[emailNorm]; return res.status(400).json({ error: 'Codice scaduto, richiedine uno nuovo' }); }
+    if (richiesta.codice !== String(codice).trim()) return res.status(400).json({ error: 'Codice errato' });
+    const passwordHash2 = await bcrypt.hash(nuovaPassword, 10);
+    await supabase.from('utenti').update({ password_hash: passwordHash2 }).eq('email', emailNorm);
+    delete codiciResetPasswordGestaway[emailNorm];
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
@@ -974,41 +1007,6 @@ app.get('/api/debug/diagnosi-rete', requireAuth, async (req, res) => {
     testConnessione('alloggiatiweb.poliziadistato.it'),
   ]);
   res.json({ risultati });
-});
-
-app.post('/api/password-reset/conferma', async (req, res) => {
-  try {
-    const { email, codice, nuovaPassword } = req.body;
-    if (!email || !codice || !nuovaPassword) return res.status(400).json({ error: 'Dati mancanti' });
-    if (nuovaPassword.length < 6) return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
-    const emailNorm = email.toLowerCase().trim();
-    const richiesta = codiciResetPasswordGestaway[emailNorm];
-    if (!richiesta) return res.status(400).json({ error: 'Nessuna richiesta di reset trovata, richiedine una nuova' });
-    if (Date.now() > richiesta.scadenza) { delete codiciResetPasswordGestaway[emailNorm]; return res.status(400).json({ error: 'Codice scaduto, richiedine uno nuovo' }); }
-    if (richiesta.codice !== String(codice).trim()) return res.status(400).json({ error: 'Codice errato' });
-    const passwordHash = await bcrypt.hash(nuovaPassword, 10);
-    await supabase.from('utenti').update({ password_hash: passwordHash }).eq('email', emailNorm);
-    delete codiciResetPasswordGestaway[emailNorm];
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const { data: struttura, error: e1 } = await supabase.from('strutture').insert({
-      nome, email, cin: cin || null, piano: piano || 'base', stato: 'attivo',
-      max_strutture_fisiche: piano === 'professionale' ? 3 : piano === 'personalizzato' ? 999 : 1,
-    }).select().single();
-    if (e1) return res.status(500).json({ error: 'Errore creazione struttura: ' + e1.message });
-    const { error: e2 } = await supabase.from('utenti').insert({
-      struttura_id: struttura.id, email, password_hash: passwordHash, ruolo: 'owner',
-    });
-    if (e2) return res.status(500).json({ error: 'Errore creazione utente: ' + e2.message });
-    res.json({ ok: true, struttura_id: struttura.id });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
 });
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
