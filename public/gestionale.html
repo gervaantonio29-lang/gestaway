@@ -1537,7 +1537,7 @@ async function renderQuestura() {
   // promemoria di check-in PRIMA dell'arrivo e non solo dopo.
   const list = prenotazioni
     .filter(p => p.stato !== 'cancellata' && (p.data_arrivo <= oggi || canaleChannex(p)))
-    .sort((a, b) => (a.data_arrivo || '').localeCompare(b.data_arrivo || ''));
+    .sort((a, b) => (b.data_arrivo || '').localeCompare(a.data_arrivo || ''));
   const el = document.getElementById('questura-list');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🚔</div>Nessuna prenotazione da registrare</div>'; return; }
   el.innerHTML = '<div class="empty-state">Caricamento dati ospiti...</div>';
