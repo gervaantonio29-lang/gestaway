@@ -66,6 +66,7 @@ class ChannexClient {
   delete(path)     { return this._request('DELETE', path); }
   async listProperties()          { return this.get('/properties'); }
   async listRoomTypes(propertyId) { return this.get(`/room_types?property_id=${propertyId}`); }
+  async getBookings(propertyId, page = 1, pageSize = 100) { return this.get(`/bookings?filter[property_id]=${propertyId}&page[number]=${page}&page[size]=${pageSize}`); }
   async listRatePlans(propertyId) { return this.get(`/rate_plans?property_id=${propertyId}`); }
   async createProperty(attrs)     { return this.post('/properties', { property: attrs }); }
   async createRoomType(attrs)     { return this.post('/room_types', { room_type: attrs }); }

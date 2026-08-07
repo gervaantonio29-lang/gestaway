@@ -1026,6 +1026,14 @@ app.get('/api/debug/rate-plans/:propertyId', requireAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/api/debug/bookings-raw/:propertyId', requireAuth, async (req, res) => {
+  try {
+    const r = await channex.client.getBookings(req.params.propertyId, 1, 3);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
