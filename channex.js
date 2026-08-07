@@ -359,6 +359,14 @@ class ChannexBookings {
           bambini: attrs.occupancy?.children || null,
           note: null,
         }, { onConflict: 'struttura_id,uid' });
+        if (roomMapping?.gestaway_room_id) {
+          try {
+            await this.pushAvailabilityDelta(strutturaId, gPropertyId, roomMapping.gestaway_room_id, attrs.arrival_date, attrs.departure_date, 0);
+            console.log(`[Bookings] ✅ Disponibilità bloccata per ${attrs.arrival_date} → ${attrs.departure_date} (booking ${bookingId}, struttura ${strutturaId})`);
+          } catch (availErr) {
+            console.error('[Bookings] Errore blocco disponibilità:', availErr.message);
+          }
+        }
 
         if (status === 'new') {
           try {
