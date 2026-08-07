@@ -1042,7 +1042,7 @@ app.post('/api/admin/backfill-prenotazioni/:propertyId', requireAuth, async (req
       const lista = r?.data || [];
       if (!lista.length) break;
       for (const booking of lista) {
-        await channex._processRevision({ attributes: booking.attributes });
+        await channex.bookings._processRevision({ attributes: booking.attributes });
         elaborati.push({ id: booking.attributes.booking_id, ospite: booking.attributes.customer?.name, status: booking.attributes.status });
         totali++;
       }
