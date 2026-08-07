@@ -1532,7 +1532,7 @@ let questuraFiltroAttivo = 'tutte';
 async function renderQuestura() {
   prenotazioni = await api('/api/prenotazioni');
   const oggi = dateToStr(new Date());
-  const canaleChannex = p => p.uid && p.uid.startsWith('channex_');
+  const canaleChannex = p => p.uid && (p.uid.startsWith('channex_') || p.uid.startsWith('migrato_'));
   // Include anche le prenotazioni future dei canali, cosi' si puo' mandare il
   // promemoria di check-in PRIMA dell'arrivo e non solo dopo.
   const list = prenotazioni
