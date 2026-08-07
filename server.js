@@ -393,6 +393,34 @@ app.post('/api/password-reset/conferma', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/checkin', (req, res) => res.sendFile(require('path').join(__dirname, 'public', 'checkin.html')));
+app.get('/api/checkin/:id', async (req, res) => {
+  const { data, error } = await supabase.from('prenotazioni').select('id, data_arrivo, data_partenza, ospite, appartamenti(nome)').eq('id', req.params.id).single();
+  if (error || !data) return res.status(404).json({ error: 'Non trovata' });
+  res.json({ ...data, appartamento_nome: data.appartamenti?.nome || '—' });
+});
+app.get('/api/checkin/:id/ospiti', async (req, res) => {
+  const { data, error } = await supabase.from('ospiti').select('*').eq('prenotazione_id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+app.post('/api/checkin/:id/ospiti', async (req, res) => {
+  const { data: pren } = await supabase.from('prenotazioni').select('struttura_id').eq('id', req.params.id).single();
+  if (!pren) return res.status(404).json({ error: 'Prenotazione non trovata' });
+  const { data, error } = await supabase.from('ospiti').insert({ ...req.body, prenotazione_id: req.params.id, struttura_id: pren.struttura_id }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data.id });
+});
+app.delete('/api/checkin/ospiti/:id', async (req, res) => {
+  const { error } = await supabase.from('ospiti').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.post('/api/checkin/:id/conferma', async (req, res) => {
+  const { error } = await supabase.from('prenotazioni').update({ checkin_completato: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
