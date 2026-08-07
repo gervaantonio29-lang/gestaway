@@ -349,6 +349,8 @@ class ChannexBookings {
           fonte, importo: attrs.amount || null,
           stato: 'confermata', questura_inviata: 0,
           appartamento_id: appartamentoId,
+          adulti: attrs.occupancy?.adults || null,
+          bambini: attrs.occupancy?.children || null,
           note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
         }, { onConflict: 'struttura_id,uid' });
 

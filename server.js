@@ -432,7 +432,7 @@ app.get('/api/prenotazioni', async (req, res) => {
   const { data: ospitiRows } = await supabase.from('ospiti').select('prenotazione_id').eq('struttura_id', req.strutturaId);
   const conteggioOspiti = {};
   (ospitiRows || []).forEach(o => { conteggioOspiti[o.prenotazione_id] = (conteggioOspiti[o.prenotazione_id] || 0) + 1; });
-  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—', numero_ospiti: conteggioOspiti[p.id] || 0 })));
+  res.json(data.map(p => ({ ...p, appartamento_nome: p.appartamenti?.nome || '—', numero_ospiti: conteggioOspiti[p.id] || ((p.adulti || 0) + (p.bambini || 0)) || 0 })));
 });
 app.post('/api/prenotazioni', async (req, res) => {
   const uid = 'manual_' + Date.now();
