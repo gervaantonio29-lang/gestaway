@@ -357,7 +357,7 @@ class ChannexBookings {
           appartamento_id: appartamentoId,
           adulti: attrs.occupancy?.adults || null,
           bambini: attrs.occupancy?.children || null,
-          note: attrs.ota_reservation_code ? `Codice OTA: ${attrs.ota_reservation_code}` : null,
+          note: null,
         }, { onConflict: 'struttura_id,uid' });
 
         if (status === 'new') {
