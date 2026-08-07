@@ -538,7 +538,7 @@ function buildAlloggiatiLines(ospiti, pren) {
   const pad = (s, l) => String(s || '').substring(0, l).padEnd(l, ' ');
   const fmtData = d => { if (!d) return '          '; if (d.includes('/')) return d.padEnd(10, ' '); const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '          '; };
   return ospiti.map((o, i) => {
-    const tipo = i === 0 ? '16' : '19', arrivo = fmtData(pren.data_arrivo);
+    const tipo = i === 0 ? (ospiti.length > 1 ? '17' : '16') : '19', arrivo = fmtData(pren.data_arrivo);
     const giorni = (() => { if (!pren.data_arrivo || !pren.data_partenza) return ' 1'; const d = Math.round((new Date(pren.data_partenza) - new Date(pren.data_arrivo)) / 86400000); return String(d).padStart(2, ' '); })();
     const stato = pad(o.stato_nascita_codice || '100000100', 9), comune = o.comune_nascita_codice ? pad(o.comune_nascita_codice, 9) : '         ', prov = o.comune_nascita_provincia ? pad(o.comune_nascita_provincia, 2) : '  ';
     let riga = tipo + arrivo + giorni + pad(o.cognome, 50) + pad(o.nome, 30) + String(o.sesso || '1') + fmtData(o.data_nascita) + comune + prov + stato + stato;
