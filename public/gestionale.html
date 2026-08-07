@@ -1566,7 +1566,7 @@ function disegnaListaQuestura() {
     // "Da registrare" = gia' arrivate e non ancora registrate — le future non sono
     // ancora "in scadenza", solo non ancora processate, non vanno mischiate qui.
     if (questuraFiltroAttivo === 'da-registrare') return !futura && !p.questura_inviata;
-    return true;
+    return !p.questura_inviata;
   });
   if (!filtrate.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🚔</div>Nessuna prenotazione in questa vista</div>'; return; }
   el.innerHTML = filtrate.map(({ p, ospiti }) => {
