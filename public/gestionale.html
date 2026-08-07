@@ -1069,7 +1069,7 @@ async function loadDashboard() {
           ${p.stato === 'richiesta' && p.note ? `<div class="card-sub" style="margin-top:4px;color:var(--muted);font-size:12px">📝 ${p.note}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          ${p.stato === 'richiesta' ? `<button class="btn btn-primary" style="font-size:12px;padding:4px 10px" onclick="confermaPren(${p.id})">✓ Conferma</button><button class="btn" style="font-size:12px;padding:4px 10px;color:var(--red)" onclick="cancellaPren(${p.id})">✗ Cancella</button>` : ''}
+          ${p.stato === 'richiesta' ? `<button class="btn btn-primary" style="font-size:12px;padding:4px 10px" onclick="confermaPren('${p.id}')">✓ Conferma</button><button class="btn" style="font-size:12px;padding:4px 10px;color:var(--red)" onclick="cancellaPren('${p.id}')">✗ Cancella</button>` : ''}
           <span class="badge ${p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : p.stato === 'richiesta' ? 'badge-amber' : 'badge-gray'}">${p.stato === 'richiesta' ? 'Sito web' : p.fonte}</span>
         </div>
       </div>
@@ -1113,9 +1113,9 @@ async function renderAppartamenti() {
         </div>
       </div>
       <div class="card-actions">
-        <button class="btn btn-sm" onclick="editApt(${a.id})">✏️ Modifica</button>
-        <button class="btn btn-sm btn-green" onclick="syncApt(${a.id})">🔄 Sincronizza iCal</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteApt(${a.id})">🗑️ Elimina</button>
+        <button class="btn btn-sm" onclick="editApt('${a.id}')">✏️ Modifica</button>
+        <button class="btn btn-sm btn-green" onclick="syncApt('${a.id}')">🔄 Sincronizza iCal</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteApt('${a.id}')">🗑️ Elimina</button>
       </div>
     </div>
   `).join('');
@@ -1271,7 +1271,7 @@ async function renderPrezzi() {
           </div>
         </div>
         <div class="card-actions" style="padding:0;margin-top:10px">
-          <button class="btn btn-sm btn-primary" onclick="salvaPrezzi(${a.id})">💾 Salva prezzi</button>
+          <button class="btn btn-sm btn-primary" onclick="salvaPrezzi('${a.id}')">💾 Salva prezzi</button>
         </div>
       </div>
     </div>
@@ -1385,9 +1385,9 @@ async function renderPrenotazioni() {
       <td><span class="badge ${p.stato === 'richiesta' ? 'badge-amber' : p.fonte === 'Airbnb' ? 'badge-red' : p.fonte === 'Booking' ? 'badge-blue' : p.fonte === 'blocco' ? 'badge-gray' : 'badge-gray'}">${p.stato === 'richiesta' ? '⏳ Richiesta' : p.fonte === 'blocco' ? '🚫 Blocco' : p.fonte}</span></td>
       <td>
         <div style="display:flex;gap:4px">
-          <button class="btn btn-sm" onclick="editPren(${p.id})" title="Modifica">✏️</button>
-          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})" title="Questura">🚔</button><button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})" title="Ricevuta">🧾</button>${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido(${p.id})" title="Invia messaggio">💬</button>` : ''}`}
-          <button class="btn btn-sm btn-danger" onclick="deletePren(${p.id})" title="Elimina">🗑️</button>
+          <button class="btn btn-sm" onclick="editPren('${p.id}')" title="Modifica">✏️</button>
+          ${p.fonte === 'blocco' ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco('${p.id}')" title="Converti in prenotazione">🔄</button>` : `<button class="btn btn-sm btn-green" onclick="openQuestura('${p.id}')" title="Questura">🚔</button><button class="btn btn-sm" onclick="scaricaRicevuta('${p.id}')" title="Ricevuta">🧾</button>${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido('${p.id}')" title="Invia messaggio">💬</button>` : ''}`}
+          <button class="btn btn-sm btn-danger" onclick="deletePren('${p.id}')" title="Elimina">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -1412,13 +1412,13 @@ async function renderPrenotazioni() {
         ${p.email_ospite ? '<br>' + p.email_ospite : ''}
       </div>
       <div class="card-actions" style="flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="editPren(${p.id})">✏️ Modifica</button>
+        <button class="btn btn-sm" onclick="editPren('${p.id}')">✏️ Modifica</button>
         ${p.fonte === 'blocco'
-          ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco(${p.id})">🔄 Converti</button>`
-          : `<button class="btn btn-sm btn-green" onclick="openQuestura(${p.id})">🚔 Questura</button>
-             <button class="btn btn-sm" onclick="scaricaRicevuta(${p.id})">🧾 Ricevuta</button>
-             ${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido(${p.id})">💬 Messaggio</button>` : ''}`}
-        <button class="btn btn-sm btn-danger" onclick="deletePren(${p.id})">🗑️ Elimina</button>
+          ? `<button class="btn btn-sm btn-green" onclick="convertiBlocco('${p.id}')">🔄 Converti</button>`
+          : `<button class="btn btn-sm btn-green" onclick="openQuestura('${p.id}')">🚔 Questura</button>
+             <button class="btn btn-sm" onclick="scaricaRicevuta('${p.id}')">🧾 Ricevuta</button>
+             ${p.uid && p.uid.startsWith('channex_') ? `<button class="btn btn-sm" onclick="apriMessaggioRapido('${p.id}')">💬 Messaggio</button>` : ''}`}
+        <button class="btn btn-sm btn-danger" onclick="deletePren('${p.id}')">🗑️ Elimina</button>
       </div>
     </div>`;
   }).join('') || '<div class="empty-state">Nessuna prenotazione trovata</div>';
@@ -1589,10 +1589,10 @@ function disegnaListaQuestura() {
           : '⚠️ Nessun dato ospite inserito ancora'}
       </div>
       <div class="card-actions">
-        <button class="btn btn-sm btn-primary" onclick="openQuestura(${p.id})">📋 Gestisci dati ospite</button>
-        ${!futura && !p.questura_inviata ? `<button class="btn btn-sm btn-green" onclick="segnaRegistrato(${p.id})">✓ Segna come registrato</button>` : ''}
-        ${!futura && p.questura_inviata ? `<button class="btn btn-sm" onclick="annullaRegistrato(${p.id})">↩️ Annulla registrazione</button>` : ''}
-        ${!ospiti.length && canaleChannex(p) ? `<button class="btn btn-sm" onclick="inviaPromemoriaCheckin(${p.id})">📤 Invia promemoria check-in</button>` : ''}
+        <button class="btn btn-sm btn-primary" onclick="openQuestura('${p.id}')">📋 Gestisci dati ospite</button>
+        ${!futura && !p.questura_inviata ? `<button class="btn btn-sm btn-green" onclick="segnaRegistrato('${p.id}')">✓ Segna come registrato</button>` : ''}
+        ${!futura && p.questura_inviata ? `<button class="btn btn-sm" onclick="annullaRegistrato('${p.id}')">↩️ Annulla registrazione</button>` : ''}
+        ${!ospiti.length && canaleChannex(p) ? `<button class="btn btn-sm" onclick="inviaPromemoriaCheckin('${p.id}')">📤 Invia promemoria check-in</button>` : ''}
       </div>
     </div>
   `;
@@ -1676,7 +1676,7 @@ async function loadOspiti(prenId) {
   el.innerHTML = ospiti.map(o => `
     <div class="ospite-row">
       <div><strong>${o.nome} ${o.cognome}</strong> · ${o.stato_nascita_nome || ''} · ${o.comune_nascita_nome || ''} · ${o.tipo_documento} ${o.numero_documento}</div>
-      <button class="btn btn-sm btn-danger" onclick="deleteOspite(${o.id})">🗑️</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteOspite('${o.id}')">🗑️</button>
     </div>
   `).join('');
 }
@@ -2015,7 +2015,7 @@ async function renderCalendario() {
         eventiHtml += `<div class="cal-event-span ${cls}"
           style="left:calc(${leftPct}% + 2px);width:calc(${widthPct}% - 4px);top:${topPx}px;border-radius:${borderRadius};${!isStartInWeek ? 'border-left:none;' : ''}"
           title="${p.ospite||'Ospite'} · ${p.data_arrivo} → ${p.data_partenza}${p.numero_ospiti ? ' · ' + p.numero_ospiti + ' ospit' + (p.numero_ospiti===1?'e':'i') : ''}${p.note ? ' · Nota: ' + (p.note+'').replace(/"/g,'&quot;') : ''}"
-          onclick="editPren(${p.id})">${label}</div>`;
+          onclick="editPren('${p.id}')">${label}</div>`;
       });
 
       const rowCount = Math.max(1, Object.keys(usedRows).length > 0
