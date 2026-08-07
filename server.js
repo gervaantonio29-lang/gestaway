@@ -569,6 +569,20 @@ async function inviaSchedeAW(u, token, lines) {
   const r = await soapRequest(body);
   return { esito: xmlTag(r, 'esito'), errore: xmlTag(r, 'ErroreDettaglio'), schedineValide: xmlTag(r, 'SchedineValide') };
 }
+async function getIdAppartamentoAW(appartamentoId, strutturaId) {
+  if (!appartamentoId) return null;
+  const { data } = await supabase.from('appartamenti').select('alloggiati_id_appartamento').eq('id', appartamentoId).eq('struttura_id', strutturaId).single();
+  return data?.alloggiati_id_appartamento ?? null;
+}
+async function inviaSchedeAWSmart(u, token, lines, idAppartamento) {
+  if (idAppartamento !== null && idAppartamento !== undefined) {
+    const righe = lines.map(r => `<all:string>${r}</all:string>`).join('\n');
+    const body = `<all:GestioneAppartamenti_Send xmlns:all="AlloggiatiService"><all:Utente>${u}</all:Utente><all:token>${token}</all:token><all:ElencoSchedine>${righe}</all:ElencoSchedine><all:IdAppartamento>${idAppartamento}</all:IdAppartamento></all:GestioneAppartamenti_Send>`;
+    const r = await soapRequest(body);
+    return { esito: xmlTag(r, 'esito'), errore: xmlTag(r, 'ErroreDettaglio'), schedineValide: xmlTag(r, 'SchedineValide') };
+  }
+  return inviaSchedeAW(u, token, lines);
+}
 app.post('/api/questura/invia', async (req, res) => {
   const { data: pren } = await supabase.from('prenotazioni').select('*').eq('id', req.body.prenotazione_id).eq('struttura_id', req.strutturaId).single();
   const { data: ospiti } = await supabase.from('ospiti').select('*').eq('prenotazione_id', req.body.prenotazione_id).eq('struttura_id', req.strutturaId);
@@ -579,7 +593,8 @@ app.post('/api/questura/invia', async (req, res) => {
   if (cfg.alloggiati_user && cfg.alloggiati_pass && cfg.alloggiati_ws) {
     try {
       const token = await generaTokenAW(cfg.alloggiati_user, cfg.alloggiati_pass, cfg.alloggiati_ws);
-      const { esito, errore, schedineValide } = await inviaSchedeAW(cfg.alloggiati_user, token, lines);
+      const idApt = await getIdAppartamentoAW(pren.appartamento_id, req.strutturaId);
+      const { esito, errore, schedineValide } = await inviaSchedeAWSmart(cfg.alloggiati_user, token, lines, idApt);
       if (esito === 'true' || (schedineValide && parseInt(schedineValide) > 0)) {
         await supabase.from('prenotazioni').update({ questura_inviata: 1 }).eq('id', req.body.prenotazione_id);
         return res.json({ ok: true, inviato_automaticamente: true, contenuto });
