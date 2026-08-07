@@ -421,6 +421,17 @@ app.post('/api/checkin/:id/conferma', async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
+app.get('/api/checkin/cerca', async (req, res) => {
+  const { nome, data, orario } = req.query;
+  if (!nome || !data) return res.status(400).json({ error: 'Parametri mancanti' });
+  const { data: prens } = await supabase.from('prenotazioni').select('id, data_arrivo, data_partenza, ospite, appartamenti(nome)').eq('data_arrivo', data);
+  if (!prens || !prens.length) return res.status(404).json({ error: 'Non trovata' });
+  const nomeQuery = nome.toLowerCase().trim();
+  const pren = prens.find(p => { const ospite = (p.ospite || '').toLowerCase(); return ospite.includes(nomeQuery) || nomeQuery.split(' ').some(part => part.length > 2 && ospite.includes(part)); });
+  if (!pren) return res.status(404).json({ error: 'Non trovata' });
+  if (orario) await supabase.from('prenotazioni').update({ orario_arrivo: orario }).eq('id', pren.id);
+  res.json({ ...pren, appartamento_nome: pren.appartamenti?.nome || '—' });
+});
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
