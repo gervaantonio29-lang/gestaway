@@ -1034,6 +1034,26 @@ app.get('/api/debug/bookings-raw/:propertyId', requireAuth, async (req, res) => 
     res.status(500).json({ error: e.message });
   }
 });
+app.post('/api/admin/backfill-prenotazioni/:propertyId', requireAuth, async (req, res) => {
+  try {
+    let pagina = 1, totali = 0, elaborati = [];
+    while (true) {
+      const r = await channex.client.getBookings(req.params.propertyId, pagina, 50);
+      const lista = r?.data || [];
+      if (!lista.length) break;
+      for (const booking of lista) {
+        await channex._processRevision({ attributes: booking.attributes });
+        elaborati.push({ id: booking.attributes.booking_id, ospite: booking.attributes.customer?.name, status: booking.attributes.status });
+        totali++;
+      }
+      if (lista.length < 50) break;
+      pagina++;
+    }
+    res.json({ ok: true, totali, elaborati });
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
