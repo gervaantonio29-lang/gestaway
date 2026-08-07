@@ -1592,7 +1592,7 @@ function disegnaListaQuestura() {
         <button class="btn btn-sm btn-primary" onclick="openQuestura('${p.id}')">📋 Gestisci dati ospite</button>
         ${!futura && !p.questura_inviata ? `<button class="btn btn-sm btn-green" onclick="segnaRegistrato('${p.id}')">✓ Segna come registrato</button>` : ''}
         ${!futura && p.questura_inviata ? `<button class="btn btn-sm" onclick="annullaRegistrato('${p.id}')">↩️ Annulla registrazione</button>` : ''}
-        ${!ospiti.length && canaleChannex(p) ? `<button class="btn btn-sm" onclick="inviaPromemoriaCheckin('${p.id}')">📤 Invia promemoria check-in</button>` : ''}
+        ${!ospiti.length && (p.uid && p.uid.startsWith('channex_')) ? `<button class="btn btn-sm" onclick="inviaPromemoriaCheckin('${p.id}')">📤 Invia promemoria check-in</button>` : ''}
       </div>
     </div>
   `;
