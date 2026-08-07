@@ -275,15 +275,20 @@ class ChannexBookings {
         importo: attrs.amount, valuta: attrs.currency,
         ospite_nome: attrs.customer?.name, ospite_cognome: attrs.customer?.surname,
         ospite_email: attrs.customer?.mail, ospite_telefono: attrs.customer?.phone,
-        adulti: attrs.occupancy?.adults, bambini: attrs.occupancy?.children,
+        adulti: attrs.rooms?.[0]?.occupancy?.adults, bambini: attrs.rooms?.[0]?.occupancy?.children,
         note: attrs.notes, raw_payload: attrs,
       };
       // Salva SEMPRE in channex_prenotazioni (anche se cancelled) per avere le date
       await this.supabase.from('channex_prenotazioni').upsert(bookingData, { onConflict: 'channex_booking_id' });
 
-      // Trova l'appartamento Gestaway collegato a questa room Channex (via
-      // room_type_id -> channex_room_mappings), scoped per struttura.
-      const { data: roomMapping } = await this.supabase.from('channex_room_mappings').select('gestaway_room_id, appartamento_gestaway_id').eq('struttura_id', strutturaId).eq('gestaway_property_id', gPropertyId).limit(1).single();
+      // Trova l'appartamento Gestaway collegato a questa room Channex SPECIFICA (via
+      // room_type_id della prenotazione -> channex_room_mappings), scoped per struttura.
+      const roomTypeIdPrenotazione = attrs.rooms?.[0]?.room_type_id || null;
+      let roomMapping = null;
+      if (roomTypeIdPrenotazione) {
+        const { data } = await this.supabase.from('channex_room_mappings').select('gestaway_room_id, appartamento_gestaway_id').eq('struttura_id', strutturaId).eq('gestaway_property_id', gPropertyId).eq('channex_room_type_id', roomTypeIdPrenotazione).limit(1).single();
+        roomMapping = data;
+      }
       const { data: appartamentiStruttura } = await this.supabase.from('appartamenti').select('id').eq('struttura_id', strutturaId);
       const appartamentoId = roomMapping?.appartamento_gestaway_id || (appartamentiStruttura?.length === 1 ? appartamentiStruttura[0].id : null);
 
