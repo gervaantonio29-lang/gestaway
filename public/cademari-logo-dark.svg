@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&amp;display=swap');</style>
+</defs>
+
+<!-- Tetto minimalista centrato su x=200 -->
+<polyline points="162,55 200,18 238,55" fill="none" stroke="#1a1a18" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="178,55 200,32 222,55" fill="none" stroke="#1a1a18" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- CA' DE' MARI -->
+<text x="200" y="88" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-size="26" font-weight="400" fill="#1a1a18" letter-spacing="8">CA' DE' MARI</text>
+
+<!-- Linea sottile -->
+<line x1="140" y1="100" x2="260" y2="100" stroke="#1a1a18" stroke-width="0.8"/>
+
+<!-- B&amp;B -->
+<text x="200" y="128" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-size="26" font-weight="400" fill="#1a1a18" letter-spacing="4">B&amp;B</text>
+
+</svg>
