@@ -1208,7 +1208,7 @@ app.post('/api/appartamenti/:id/invia-prezzi-channex', async (req, res) => {
 });
 app.get('/api/debug/verifica-tariffa/:ratePlanId', requireAuth, async (req, res) => {
   try {
-    const r = await channex.client.get(`/rates?filter[rate_plan_id]=${req.params.ratePlanId}&filter[date][gte]=2026-08-08&filter[date][lte]=2026-08-15`);
+    const r = await channex.client.get(`/restrictions?filter[property_id]=d2588916-2697-4273-a48a-22f497b7bdac&filter[date][gte]=2026-08-08&filter[date][lte]=2026-08-15&filter[restrictions]=rate`);
     res.json(r);
   } catch (e) {
     res.status(500).json({ error: e.message });
