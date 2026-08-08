@@ -1135,6 +1135,17 @@ app.get('/api/debug/test-alloggiati/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/api/debug/test-token-raw', requireAuth, async (req, res) => {
+  try {
+    const { data: cfgData } = await supabase.from('impostazioni').select('*').eq('struttura_id', req.strutturaId).in('chiave', ['alloggiati_user', 'alloggiati_pass', 'alloggiati_ws']);
+    const cfg = {}; (cfgData || []).forEach(r => cfg[r.chiave] = r.valore);
+    const body = `<all:GenerateToken xmlns:all="AlloggiatiService"><all:Utente>${cfg.alloggiati_user}</all:Utente><all:Password>${cfg.alloggiati_pass}</all:Password><all:WsKey>${cfg.alloggiati_ws}</all:WsKey></all:GenerateToken>`;
+    const r = await soapRequest(body);
+    res.json({ raw_response: r });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
