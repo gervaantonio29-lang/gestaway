@@ -212,8 +212,10 @@ class ChannexSync {
     await this.outbox.flush();
   }
   async pushRestrictionsDelta(strutturaId, gPropertyId, changes) {
+    console.log('[DEBUG pushRestrictionsDelta] strutturaId:', strutturaId, 'gPropertyId:', gPropertyId);
     const mapping = await this.getMapping(strutturaId, gPropertyId);
-    if (!mapping) return;
+    console.log('[DEBUG pushRestrictionsDelta] mapping trovato:', JSON.stringify(mapping));
+    if (!mapping) { console.log('[DEBUG pushRestrictionsDelta] MAPPING NULL, esco senza fare nulla'); return; }
     const values = changes.map(ch => ({ property_id: mapping.channex_property_id, rate_plan_id: ch.ratePlanId, date_from: ch.dateFrom, date_to: ch.dateTo, ...(ch.rate != null && { rate: Math.round(ch.rate * 100) }), ...(ch.min_stay_arrival != null && { min_stay_arrival: ch.min_stay_arrival }), ...(ch.min_stay_through != null && { min_stay_through: ch.min_stay_through }), ...(ch.max_stay != null && { max_stay: ch.max_stay }), ...(ch.stop_sell != null && { stop_sell: ch.stop_sell }), ...(ch.closed_to_arrival != null && { closed_to_arrival: ch.closed_to_arrival }), ...(ch.closed_to_departure != null && { closed_to_departure: ch.closed_to_departure }) }));
     await this.outbox.enqueue(strutturaId, 'restrictions', { values }, gPropertyId);
     await this.outbox.flush();
