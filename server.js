@@ -1179,7 +1179,7 @@ app.post('/api/appartamenti/:id/invia-prezzi-channex', async (req, res) => {
         dateTo: s.to,
         rate: +(baseConIva * (1 + s.r) * (1 + markup)).toFixed(2),
       }));
-      await channex.pushRestrictionsDelta(req.strutturaId, mapping.gestaway_property_id, changes);
+      await channex.sync.pushRestrictionsDelta(req.strutturaId, mapping.gestaway_property_id, changes);
       risultati.push({ tariffa: rateMap.channex_rate_plan_nome, segmenti_inviati: changes.length });
     }
     res.json({ ok: true, risultati });
