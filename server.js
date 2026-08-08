@@ -1108,6 +1108,33 @@ app.post('/api/admin/backfill-prenotazioni/:propertyId', requireAuth, async (req
     res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
+app.get('/api/debug/test-alloggiati/:id', requireAuth, async (req, res) => {
+  try {
+    const { data: pren } = await supabase.from('prenotazioni').select('*').eq('id', req.params.id).eq('struttura_id', req.strutturaId).single();
+    if (!pren) return res.status(404).json({ error: 'Prenotazione non trovata' });
+    const { data: ospiti } = await supabase.from('ospiti').select('*').eq('prenotazione_id', req.params.id);
+    if (!ospiti?.length) return res.status(400).json({ error: 'Nessun ospite' });
+    const idApt = await getIdAppartamentoAW(pren.appartamento_id, req.strutturaId);
+    const { data: cfgData } = await supabase.from('impostazioni').select('*').eq('struttura_id', req.strutturaId).in('chiave', ['alloggiati_user', 'alloggiati_pass', 'alloggiati_ws']);
+    const cfg = {}; (cfgData || []).forEach(r => cfg[r.chiave] = r.valore);
+    if (!cfg.alloggiati_user || !cfg.alloggiati_pass || !cfg.alloggiati_ws) return res.status(400).json({ error: 'Credenziali non configurate' });
+    const lines = buildAlloggiatiLines(ospiti, pren);
+    const token = await generaTokenAW(cfg.alloggiati_user, cfg.alloggiati_pass, cfg.alloggiati_ws);
+    const righe = lines.map(r => `<all:string>${r}</all:string>`).join('\n');
+    let body, azione;
+    if (idApt !== null && idApt !== undefined) {
+      body = `<all:GestioneAppartamenti_Test xmlns:all="AlloggiatiService"><all:Utente>${cfg.alloggiati_user}</all:Utente><all:token>${token}</all:token><all:ElencoSchedine>${righe}</all:ElencoSchedine><all:IdAppartamento>${idApt}</all:IdAppartamento></all:GestioneAppartamenti_Test>`;
+      azione = 'GestioneAppartamenti_Test';
+    } else {
+      body = `<all:Test xmlns:all="AlloggiatiService"><all:Utente>${cfg.alloggiati_user}</all:Utente><all:token>${token}</all:token><all:ElencoSchedine>${righe}</all:ElencoSchedine></all:Test>`;
+      azione = 'Test';
+    }
+    const r = await soapRequest(body);
+    res.json({ idApt, azione, righe_generate: lines, risposta: r });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
