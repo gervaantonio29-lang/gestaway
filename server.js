@@ -1179,14 +1179,9 @@ app.post('/api/appartamenti/:id/invia-prezzi-channex', async (req, res) => {
     const base = apt.prezzo_base, iva = (apt.iva_percent || 0) / 100;
     const baseConIva = base * (1 + iva);
     const markupAirbnb = (apt.markup_airbnb || 0) / 100, markupBooking = (apt.markup_booking || 0) / 100;
-    const rBassa = (apt.rincaro_bassa || 0) / 100, rMedia = (apt.rincaro_media || 0) / 100, rAlta = (apt.rincaro_alta || 0) / 100;
     const anno = new Date().getFullYear();
     const segmenti = [
-      { from: `${anno}-01-01`, to: `${anno}-03-01`, r: rBassa },
-      { from: `${anno}-03-01`, to: `${anno}-05-01`, r: rMedia },
-      { from: `${anno}-05-01`, to: `${anno}-10-01`, r: rAlta },
-      { from: `${anno}-10-01`, to: `${anno}-11-01`, r: rMedia },
-      { from: `${anno}-11-01`, to: `${anno + 1}-01-01`, r: rBassa },
+      { from: `${anno}-01-01`, to: `${anno + 1}-01-01`, r: 0 },
     ];
     const risultati = [];
     for (const rateMap of rateMaps) {
