@@ -1214,6 +1214,14 @@ app.get('/api/debug/verifica-tariffa/:ratePlanId', requireAuth, async (req, res)
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/api/debug/canali', requireAuth, async (req, res) => {
+  try {
+    const r = await channex.client.get('/channels?filter[property_id]=d2588916-2697-4273-a48a-22f497b7bdac');
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
