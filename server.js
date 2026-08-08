@@ -1206,8 +1206,15 @@ app.post('/api/appartamenti/:id/invia-prezzi-channex', async (req, res) => {
     res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
+app.get('/api/debug/verifica-tariffa/:ratePlanId', requireAuth, async (req, res) => {
+  try {
+    const r = await channex.client.get(`/rates?filter[rate_plan_id]=${req.params.ratePlanId}&filter[date][gte]=2026-08-08&filter[date][lte]=2026-08-15`);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });
-
 module.exports = { app, supabase, requireAuth, PORT };
