@@ -1222,13 +1222,13 @@ async function renderPrezzi() {
       </div>
       <div style="padding:0 1.25rem 1.25rem">
         <div class="form-row three">
-          <div class="form-group"><label>Prezzo base netto (€/notte)</label><input type="number" id="pz-base-${a.id}" value="${a.prezzo_base || ''}" placeholder="50" oninput="calcolaPrezziCard(${a.id})" min="0" step="0.5"></div>
-          <div class="form-group"><label>IVA %</label><input type="number" id="pz-iva-${a.id}" value="${a.iva_percent ?? 10}" oninput="calcolaPrezziCard(${a.id})" min="0" max="100" step="1"></div>
-          <div class="form-group"><label>Rincaro sito %</label><input type="number" id="pz-sito-${a.id}" value="${a.markup_sito ?? 0}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
+          <div class="form-group"><label>Prezzo base netto (€/notte)</label><input type="number" id="pz-base-${a.id}" value="${a.prezzo_base || ''}" placeholder="50" oninput="calcolaPrezziCard('${a.id}')" min="0" step="0.5"></div>
+          <div class="form-group"><label>IVA %</label><input type="number" id="pz-iva-${a.id}" value="${a.iva_percent ?? 10}" oninput="calcolaPrezziCard('${a.id}')" min="0" max="100" step="1"></div>
+          <div class="form-group"><label>Rincaro sito %</label><input type="number" id="pz-sito-${a.id}" value="${a.markup_sito ?? 0}" oninput="calcolaPrezziCard('${a.id}')" min="0" step="1"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Mark-up Airbnb %</label><input type="number" id="pz-airbnb-${a.id}" value="${a.markup_airbnb ?? 45}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
-          <div class="form-group"><label>Mark-up Booking %</label><input type="number" id="pz-booking-${a.id}" value="${a.markup_booking ?? 20}" oninput="calcolaPrezziCard(${a.id})" min="0" step="1"></div>
+          <div class="form-group"><label>Mark-up Airbnb %</label><input type="number" id="pz-airbnb-${a.id}" value="${a.markup_airbnb ?? 45}" oninput="calcolaPrezziCard('${a.id}')" min="0" step="1"></div>
+          <div class="form-group"><label>Mark-up Booking %</label><input type="number" id="pz-booking-${a.id}" value="${a.markup_booking ?? 20}" oninput="calcolaPrezziCard('${a.id}')" min="0" step="1"></div>
         </div>
         <div id="pz-calcolati-${a.id}" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;margin-top:4px">
           <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Prezzi calcolati per notte:</div>
@@ -1243,17 +1243,17 @@ async function renderPrezzi() {
           <div class="form-row three">
             <div class="form-group">
               <label>Bassa stagione — rincaro %</label>
-              <input type="number" id="pz-bassa-${a.id}" value="${a.rincaro_bassa ?? 0}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <input type="number" id="pz-bassa-${a.id}" value="${a.rincaro_bassa ?? 0}" min="0" step="1" oninput="calcolaPrezziCard('${a.id}')">
               <div style="font-size:11px;color:var(--muted);margin-top:3px">Nov · Dic · Gen · Feb</div>
             </div>
             <div class="form-group">
               <label>Media stagione — rincaro %</label>
-              <input type="number" id="pz-media-${a.id}" value="${a.rincaro_media ?? 15}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <input type="number" id="pz-media-${a.id}" value="${a.rincaro_media ?? 15}" min="0" step="1" oninput="calcolaPrezziCard('${a.id}')">
               <div style="font-size:11px;color:var(--muted);margin-top:3px">Mar · Apr · Ott</div>
             </div>
             <div class="form-group">
               <label>Alta stagione — rincaro %</label>
-              <input type="number" id="pz-alta-${a.id}" value="${a.rincaro_alta ?? 40}" min="0" step="1" oninput="calcolaPrezziCard(${a.id})">
+              <input type="number" id="pz-alta-${a.id}" value="${a.rincaro_alta ?? 40}" min="0" step="1" oninput="calcolaPrezziCard('${a.id}')">
               <div style="font-size:11px;color:var(--muted);margin-top:3px">Mag · Giu · Lug · Ago · Set</div>
             </div>
           </div>
