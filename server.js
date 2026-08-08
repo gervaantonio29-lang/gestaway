@@ -432,6 +432,25 @@ app.get('/api/checkin/cerca', async (req, res) => {
   if (orario) await supabase.from('prenotazioni').update({ orario_arrivo: orario }).eq('id', pren.id);
   res.json({ ...pren, appartamento_nome: pren.appartamenti?.nome || '—' });
 });
+app.get('/api/disponibilita/:nomeAppartamento', async (req, res) => {
+  const { data: apt } = await supabase.from('appartamenti').select('id, prezzo_base, iva_percent, markup_sito, rincaro_bassa, rincaro_media, rincaro_alta').ilike('nome', req.params.nomeAppartamento).single();
+  if (!apt) return res.status(404).json({ error: 'Appartamento non trovato' });
+  const oggi = new Date();
+  const y = oggi.getFullYear(), m = String(oggi.getMonth()+1).padStart(2,'0');
+  const inizioMese = `${y}-${m}-01`;
+  const fine = new Date(y, oggi.getMonth()+3, 0);
+  const fineMese = `${fine.getFullYear()}-${String(fine.getMonth()+1).padStart(2,'0')}-${String(fine.getDate()).padStart(2,'0')}`;
+  const { data: prens } = await supabase.from('prenotazioni').select('data_arrivo, data_partenza').eq('appartamento_id', apt.id).neq('stato', 'cancellata').gte('data_partenza', inizioMese).lte('data_arrivo', fineMese);
+  const prezzi = {};
+  if (apt.prezzo_base) {
+    const base = apt.prezzo_base, iva = (apt.iva_percent||0)/100, sito = (apt.markup_sito||0)/100;
+    const baseConIva = base*(1+iva);
+    prezzi.bassa = +(baseConIva*(1+sito)*(1+(apt.rincaro_bassa||0)/100)).toFixed(2);
+    prezzi.media = +(baseConIva*(1+sito)*(1+(apt.rincaro_media||0)/100)).toFixed(2);
+    prezzi.alta  = +(baseConIva*(1+sito)*(1+(apt.rincaro_alta||0)/100)).toFixed(2);
+  }
+  res.json({ prenotazioni: prens||[], prezzi });
+});
 app.use('/api', requireAuth);
 
 // ─── CHANNEX SERVICES (istanza condivisa, property_id per struttura) ──
