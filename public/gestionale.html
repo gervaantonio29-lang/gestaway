@@ -1310,6 +1310,7 @@ function calcolaPrezziCard(id) {
 }
 
 async function salvaPrezzi(id) {
+  console.log('DEBUG salvaPrezzi id:', id, 'bassa:', document.getElementById('pz-bassa-'+id)?.value, 'media:', document.getElementById('pz-media-'+id)?.value, 'alta:', document.getElementById('pz-alta-'+id)?.value);
   const val = pref => parseFloat(document.getElementById(pref + id).value) || null;
   const r = await api('/api/appartamenti/' + id, 'PUT', {
     prezzo_base: val('pz-base-'),
