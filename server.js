@@ -1146,6 +1146,47 @@ app.get('/api/debug/test-token-raw', requireAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.post('/api/appartamenti/:id/invia-prezzi-channex', async (req, res) => {
+  try {
+    const { data: apt } = await supabase.from('appartamenti').select('*').eq('id', req.params.id).eq('struttura_id', req.strutturaId).single();
+    if (!apt) return res.status(404).json({ error: 'Appartamento non trovato' });
+    if (!apt.prezzo_base) return res.status(400).json({ error: 'Prezzo base non impostato' });
+    const { data: roomMap } = await supabase.from('channex_room_mappings').select('gestaway_room_id').eq('appartamento_gestaway_id', req.params.id).eq('struttura_id', req.strutturaId).single();
+    if (!roomMap) return res.status(400).json({ error: 'Appartamento non collegato a Channex' });
+    const { data: rateMaps } = await supabase.from('channex_rate_mappings').select('*').eq('gestaway_room_id', roomMap.gestaway_room_id).eq('struttura_id', req.strutturaId);
+    if (!rateMaps?.length) return res.status(400).json({ error: 'Nessuna tariffa Channex collegata a questo appartamento' });
+    const { data: mapping } = await supabase.from('channex_mappings').select('*').eq('struttura_id', req.strutturaId).single();
+    if (!mapping) return res.status(400).json({ error: 'Struttura non collegata a Channex' });
+    const base = apt.prezzo_base, iva = (apt.iva_percent || 0) / 100;
+    const baseConIva = base * (1 + iva);
+    const markupAirbnb = (apt.markup_airbnb || 0) / 100, markupBooking = (apt.markup_booking || 0) / 100;
+    const rBassa = (apt.rincaro_bassa || 0) / 100, rMedia = (apt.rincaro_media || 0) / 100, rAlta = (apt.rincaro_alta || 0) / 100;
+    const anno = new Date().getFullYear();
+    const segmenti = [
+      { from: `${anno}-01-01`, to: `${anno}-03-01`, r: rBassa },
+      { from: `${anno}-03-01`, to: `${anno}-05-01`, r: rMedia },
+      { from: `${anno}-05-01`, to: `${anno}-10-01`, r: rAlta },
+      { from: `${anno}-10-01`, to: `${anno}-11-01`, r: rMedia },
+      { from: `${anno}-11-01`, to: `${anno + 1}-01-01`, r: rBassa },
+    ];
+    const risultati = [];
+    for (const rateMap of rateMaps) {
+      const isAirbnb = (rateMap.channex_rate_plan_nome || '').toLowerCase().includes('airbnb');
+      const markup = isAirbnb ? markupAirbnb : markupBooking;
+      const changes = segmenti.map(s => ({
+        ratePlanId: rateMap.channex_rate_plan_id,
+        dateFrom: s.from,
+        dateTo: s.to,
+        rate: +(baseConIva * (1 + s.r) * (1 + markup)).toFixed(2),
+      }));
+      await channex.pushRestrictionsDelta(req.strutturaId, mapping.gestaway_property_id, changes);
+      risultati.push({ tariffa: rateMap.channex_rate_plan_nome, segmenti_inviati: changes.length });
+    }
+    res.json({ ok: true, risultati });
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack });
+  }
+});
 app.listen(PORT, () => {
   console.log(`\n✅ Gestaway (multi-tenant) avviato su porta ${PORT}!\n`);
 });

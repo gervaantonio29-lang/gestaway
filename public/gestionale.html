@@ -1272,6 +1272,7 @@ async function renderPrezzi() {
         </div>
         <div class="card-actions" style="padding:0;margin-top:10px">
           <button class="btn btn-sm btn-primary" onclick="salvaPrezzi('${a.id}')">💾 Salva prezzi</button>
+          <button class="btn btn-sm" onclick="inviaPrezziChannex('${a.id}')">📤 Invia a Channex</button>
         </div>
       </div>
     </div>
@@ -1322,6 +1323,12 @@ async function salvaPrezzi(id) {
   });
   if (r?.error) { toast('Errore: ' + r.error, 'error'); return; }
   toast('✅ Prezzi salvati');
+async function inviaPrezziChannex(id) {
+  toast('Invio prezzi a Channex in corso...');
+  const r = await api('/api/appartamenti/' + id + '/invia-prezzi-channex', 'POST');
+  if (r?.error) { toast('Errore: ' + r.error, 'error'); return; }
+  toast('✅ Prezzi inviati a Channex (' + r.risultati.length + ' tariffe aggiornate)');
+}
 }
 
 async function syncApt(id) {
